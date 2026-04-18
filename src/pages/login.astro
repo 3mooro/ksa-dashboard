@@ -1,0 +1,66 @@
+---
+let error = "";
+
+if (Astro.request.method === "POST") {
+  const data = await Astro.request.formData();
+  const username = data.get("username");
+  const password = data.get("password");
+
+  try {
+    const db = Astro.locals.runtime.env.DB;
+    const query = await db.prepare("SELECT * FROM admins WHERE username = ? AND password = ?").bind(username, password).first();
+
+    if (query) {
+      Astro.cookies.set('admin_session', 'true', { path: '/', httpOnly: true });
+      return Astro.redirect('/');
+    } else {
+      error = "اسم المستخدم أو كلمة المرور غير صحيحة.";
+    }
+  } catch (e) {
+    // If DB is not connected yet (e.g. local dev before binding), allow fallback for testing
+    if (username === 'admin' && password === 'Omar123') {
+      Astro.cookies.set('admin_session', 'true', { path: '/', httpOnly: true });
+      return Astro.redirect('/');
+    }
+    error = "حدث خطأ في الاتصال بقاعدة البيانات.";
+  }
+}
+---
+<html lang="ar" dir="rtl">
+<head>
+	<meta charset="utf-8" />
+	<title>تسجيل الدخول | أكاديمية KSA</title>
+	<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+	<style>body { font-family: 'Cairo', sans-serif; }</style>
+	<link href="../styles/global.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 flex items-center justify-center h-screen relative overflow-hidden">
+	<!-- أشكال تجميلية في الخلفية -->
+	<div class="absolute -top-40 -right-40 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+	<div class="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+	<div class="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-white w-full max-w-md z-10 relative">
+		<div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-3xl mx-auto mb-6 shadow-lg shadow-blue-500/30">
+			K
+		</div>
+		<h1 class="text-3xl font-black text-center mb-2 text-slate-800 tracking-tight">مرحباً بعودتك</h1>
+		<p class="text-center text-slate-500 font-bold mb-8">قم بتسجيل الدخول لإدارة الأكاديمية</p>
+		
+		{error && <div class="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl mb-6 text-sm font-bold text-center">{error}</div>}
+		
+		<form method="POST" class="space-y-5">
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2">اسم المستخدم</label>
+				<input type="text" name="username" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold" required autofocus />
+			</div>
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2">كلمة المرور</label>
+				<input type="password" name="password" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold" required />
+			</div>
+			<button type="submit" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-600/30 hover:-translate-y-1 transition-all">
+				تسجيل الدخول
+			</button>
+		</form>
+	</div>
+</body>
+</html>
