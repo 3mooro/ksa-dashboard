@@ -1,10 +1,6 @@
 {
   "name": "ksa-dashboard",
-  "main": "dist/server/entry.mjs",
   "compatibility_date": "2024-04-05",
-  "assets": {
-    "directory": "dist/client"
-  },
   "d1_databases": [
     {
       "binding": "DB",
