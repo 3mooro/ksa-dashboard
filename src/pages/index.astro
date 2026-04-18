@@ -1,11 +1,12 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { Users, MousePointerClick, BookOpen, TrendingUp } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
 
 let studentsCount = 0;
 
 try {
-	const db = Astro.locals.runtime.env.DB;
+	const db = env.DB;
 	const result = await db.prepare("SELECT COUNT(*) as count FROM students").first();
 	if (result) {
 		studentsCount = result.count as number;

@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { env } from 'cloudflare:workers';
 
 let error = "";
 
@@ -9,7 +10,7 @@ if (Astro.request.method === "POST") {
   const password = data.get("password");
 
   try {
-    const db = Astro.locals.runtime.env.DB;
+    const db = env.DB;
     const query = await db.prepare("SELECT * FROM admins WHERE username = ? AND password = ?").bind(username, password).first();
 
     if (query) {
