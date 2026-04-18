@@ -152,7 +152,7 @@ if (Astro.request.method === "POST") {
 					<span class="text-xs text-blue-500 font-normal">يجب أن يكون بصيغة Array of Objects صالحة</span>
 				</label>
 				<textarea name="packages" rows="6" class="w-full p-4 bg-slate-900 text-green-400 font-mono text-sm border border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-left" dir="ltr">{course.packages}</textarea>
-				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: [{"name": "باقة 8 حصص", "sessions": 8, "pricePerSession": 25, "totalPrice": 200, "features": ["تأسيس قوي"]}]</p>
+				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: {`[{"name": "باقة 8 حصص", "sessions": 8, "pricePerSession": 25, "totalPrice": 200, "features": ["تأسيس قوي"]}]`}</p>
 			</div>
 
 			<div>
@@ -160,7 +160,7 @@ if (Astro.request.method === "POST") {
 					<span>المنهج الدراسي (JSON)</span>
 				</label>
 				<textarea name="syllabus" rows="6" class="w-full p-4 bg-slate-900 text-green-400 font-mono text-sm border border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-left" dir="ltr">{course.syllabus}</textarea>
-				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: [{"unit": "الوحدة الأولى", "lessons": ["الدرس الأول", "الدرس الثاني"]}]</p>
+				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: {`[{"unit": "الوحدة الأولى", "lessons": ["الدرس الأول", "الدرس الثاني"]}]`}</p>
 			</div>
 
 			<hr class="border-slate-100 my-8" />
