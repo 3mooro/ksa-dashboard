@@ -1,0 +1,157 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { Save, ArrowRight } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
+
+const db = env.DB;
+const url = new URL(Astro.request.url);
+const id = url.searchParams.get('id');
+
+let error = "";
+let success = "";
+let post = {
+  slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: ""
+};
+
+// Fetch existing post if ID is provided (Edit mode)
+if (id && Astro.request.method === "GET") {
+  try {
+    const existing = await db.prepare("SELECT * FROM blog WHERE id = ?").bind(id).first();
+    if (existing) {
+      post = existing as any;
+      if (post.pubDate) {
+        post.pubDate = new Date(post.pubDate).toISOString().split('T')[0]; // Format for input type="date"
+      }
+    } else {
+      error = "المقال غير موجود.";
+    }
+  } catch (e) {
+    error = "خطأ في جلب بيانات المقال.";
+  }
+}
+
+// Handle Form Submission (Add or Update)
+if (Astro.request.method === "POST") {
+  const data = await Astro.request.formData();
+  
+  post = {
+    id: id || undefined,
+    slug: data.get("slug") as string,
+    title: data.get("title") as string,
+    description: data.get("description") as string,
+    pubDate: data.get("pubDate") as string,
+    heroImage: data.get("heroImage") as string,
+    author: data.get("author") as string,
+    readingTime: data.get("readingTime") as string,
+    tags: data.get("tags") as string,
+    body: data.get("body") as string,
+  } as any;
+
+  try {
+    if (!post.slug || !post.title) throw new Error("يجب إدخال الرابط والعنوان.");
+    try { JSON.parse(post.tags); } catch { throw new Error("تنسيق JSON غير صحيح لحقل الوسوم (Tags)."); }
+
+    const isoDate = new Date(post.pubDate).toISOString();
+
+    if (id) {
+      await db.prepare(`
+        UPDATE blog SET 
+          slug = ?, title = ?, description = ?, pubDate = ?, heroImage = ?, author = ?, readingTime = ?, tags = ?, body = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        post.slug, post.title, post.description, isoDate, post.heroImage, post.author, post.readingTime, post.tags, post.body, id
+      ).run();
+      success = "تم تحديث المقال بنجاح!";
+    } else {
+      await db.prepare(`
+        INSERT INTO blog (slug, title, description, pubDate, heroImage, author, readingTime, tags, body)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        post.slug, post.title, post.description, isoDate, post.heroImage, post.author, post.readingTime, post.tags, post.body
+      ).run();
+      success = "تم نشر المقال بنجاح!";
+      // Clear form on add
+      post = { slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: "" } as any;
+    }
+  } catch (e: any) {
+    error = e.message || "حدث خطأ أثناء الحفظ. تأكد من عدم تكرار الرابط (Slug).";
+  }
+}
+---
+
+<DashboardLayout title={id ? "تعديل المقال" : "كتابة مقال جديد"}>
+	<div class="flex items-center gap-4 mb-8">
+		<a href="/blog" class="p-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full transition-colors">
+			<ArrowRight class="w-5 h-5" />
+		</a>
+		<div>
+			<h2 class="text-3xl font-black text-slate-800">{id ? "تعديل المقال" : "كتابة مقال جديد"}</h2>
+			<p class="text-slate-500 font-bold mt-1">انشر محتوى مميز لطلابك ولمحركات البحث.</p>
+		</div>
+	</div>
+
+	{error && <div class="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 font-bold flex items-center gap-3"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> {error}</div>}
+	{success && <div class="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-8 font-bold flex items-center gap-3"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> {success}</div>}
+
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+		<form method="POST" class="space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<!-- Basic Info -->
+				<div class="md:col-span-2">
+					<label class="block text-sm font-black text-slate-700 mb-2">عنوان المقال <span class="text-red-500">*</span></label>
+					<input type="text" name="title" value={post.title} required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="مثال: كيف تستعد لاختبار القدرات؟" />
+				</div>
+				
+				<div class="md:col-span-2">
+					<label class="block text-sm font-black text-slate-700 mb-2">الوصف المختصر (SEO)</label>
+					<input type="text" name="description" value={post.description} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="وصف قصير يظهر في جوجل..." />
+				</div>
+
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">الرابط (Slug - إنجليزي بدون مسافات) <span class="text-red-500">*</span></label>
+					<input type="text" name="slug" value={post.slug} required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left" dir="ltr" placeholder="how-to-prepare-qiyas" />
+				</div>
+				
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">تاريخ النشر</label>
+					<input type="date" name="pubDate" value={post.pubDate} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+
+				<div class="md:col-span-2">
+					<label class="block text-sm font-black text-slate-700 mb-2">رابط صورة الغلاف (URL)</label>
+					<input type="url" name="heroImage" value={post.heroImage} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left text-slate-600" dir="ltr" placeholder="https://..." />
+				</div>
+
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">الكاتب</label>
+					<input type="text" name="author" value={post.author} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">وقت القراءة التقريبي</label>
+					<input type="text" name="readingTime" value={post.readingTime} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="مثال: 5 دقائق" />
+				</div>
+			</div>
+
+			<hr class="border-slate-100 my-8" />
+
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2 flex justify-between">
+					<span>الوسوم - Tags (JSON)</span>
+				</label>
+				<input type="text" name="tags" value={post.tags} class="w-full p-4 bg-slate-900 text-green-400 font-mono text-sm border border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-left" dir="ltr" />
+				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: ["قدرات", "نصائح"]</p>
+			</div>
+
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2">محتوى المقال (Markdown مدعوم)</label>
+				<textarea name="body" rows="15" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800 leading-relaxed" placeholder="اكتب محتوى مقالك هنا... يمكنك استخدام علامات # للعناوين، و ** للنص العريض...">{post.body}</textarea>
+			</div>
+
+			<div class="flex justify-end pt-4">
+				<button type="submit" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-lg shadow-blue-600/30 hover:-translate-y-1">
+					<Save class="w-6 h-6" /> نشر وحفظ المقال
+				</button>
+			</div>
+		</form>
+	</div>
+</DashboardLayout>

@@ -1,0 +1,180 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { Save, ArrowRight } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
+
+const db = env.DB;
+const url = new URL(Astro.request.url);
+const id = url.searchParams.get('id');
+
+let error = "";
+let success = "";
+let course = {
+  slug: "", title: "", instructor: "", rating: "5.0", image: "", tag: "", level: "primary", display_order: "0", packages: "[]", syllabus: "[]", body: ""
+};
+
+// Fetch existing course if ID is provided (Edit mode)
+if (id && Astro.request.method === "GET") {
+  try {
+    const existing = await db.prepare("SELECT * FROM courses WHERE id = ?").bind(id).first();
+    if (existing) {
+      course = existing as any;
+    } else {
+      error = "الكورس غير موجود.";
+    }
+  } catch (e) {
+    error = "خطأ في جلب بيانات الكورس.";
+  }
+}
+
+// Handle Form Submission (Add or Update)
+if (Astro.request.method === "POST") {
+  const data = await Astro.request.formData();
+  
+  course = {
+    id: id || undefined,
+    slug: data.get("slug") as string,
+    title: data.get("title") as string,
+    instructor: data.get("instructor") as string,
+    rating: data.get("rating") as string,
+    image: data.get("image") as string,
+    tag: data.get("tag") as string,
+    level: data.get("level") as string,
+    display_order: data.get("display_order") as string,
+    packages: data.get("packages") as string,
+    syllabus: data.get("syllabus") as string,
+    body: data.get("body") as string,
+  } as any;
+
+  try {
+    // Basic validation
+    if (!course.slug || !course.title) throw new Error("يجب إدخال الرابط والاسم.");
+    
+    // Validate JSON format for packages and syllabus
+    try { JSON.parse(course.packages); } catch { throw new Error("تنسيق JSON غير صحيح لحقل الباقات."); }
+    try { JSON.parse(course.syllabus); } catch { throw new Error("تنسيق JSON غير صحيح لحقل المنهج."); }
+
+    if (id) {
+      // Update
+      await db.prepare(`
+        UPDATE courses SET 
+          slug = ?, title = ?, instructor = ?, rating = ?, image = ?, tag = ?, level = ?, display_order = ?, packages = ?, syllabus = ?, body = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        course.slug, course.title, course.instructor, course.rating, course.image, course.tag, course.level, course.display_order, course.packages, course.syllabus, course.body, id
+      ).run();
+      success = "تم تحديث الكورس بنجاح!";
+    } else {
+      // Insert
+      await db.prepare(`
+        INSERT INTO courses (slug, title, instructor, rating, image, tag, level, display_order, packages, syllabus, body)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        course.slug, course.title, course.instructor, course.rating, course.image, course.tag, course.level, course.display_order, course.packages, course.syllabus, course.body
+      ).run();
+      success = "تم إضافة الكورس بنجاح!";
+      // Clear form on add
+      course = { slug: "", title: "", instructor: "", rating: "5.0", image: "", tag: "", level: "primary", display_order: "0", packages: "[]", syllabus: "[]", body: "" } as any;
+    }
+  } catch (e: any) {
+    error = e.message || "حدث خطأ أثناء الحفظ. تأكد من عدم تكرار الرابط (Slug).";
+  }
+}
+---
+
+<DashboardLayout title={id ? "تعديل الكورس" : "إضافة كورس جديد"}>
+	<div class="flex items-center gap-4 mb-8">
+		<a href="/courses" class="p-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-full transition-colors">
+			<ArrowRight class="w-5 h-5" />
+		</a>
+		<div>
+			<h2 class="text-3xl font-black text-slate-800">{id ? "تعديل الكورس" : "إضافة كورس جديد"}</h2>
+			<p class="text-slate-500 font-bold mt-1">أدخل بيانات الكورس بالتفصيل.</p>
+		</div>
+	</div>
+
+	{error && <div class="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 font-bold flex items-center gap-3"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> {error}</div>}
+	{success && <div class="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-8 font-bold flex items-center gap-3"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> {success}</div>}
+
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+		<form method="POST" class="space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<!-- Basic Info -->
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">اسم الكورس (الرئيسي) <span class="text-red-500">*</span></label>
+					<input type="text" name="title" value={course.title} required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="مثال: رياضيات (متوسط)" />
+				</div>
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">الرابط (Slug - بالإنجليزية وبدون مسافات) <span class="text-red-500">*</span></label>
+					<input type="text" name="slug" value={course.slug} required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left" dir="ltr" placeholder="middle-math" />
+				</div>
+				
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">المرحلة الدراسية</label>
+					<select name="level" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800">
+						<option value="primary" selected={course.level === 'primary'}>ابتدائي</option>
+						<option value="middle" selected={course.level === 'middle'}>متوسط</option>
+						<option value="secondary" selected={course.level === 'secondary'}>ثانوي</option>
+						<option value="university" selected={course.level === 'university'}>جامعي</option>
+					</select>
+				</div>
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">التصنيف (Tag)</label>
+					<input type="text" name="tag" value={course.tag} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="مثال: رياضيات" />
+				</div>
+
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">اسم المدرس</label>
+					<input type="text" name="instructor" value={course.instructor} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="مثال: نخبة من المعلمين" />
+				</div>
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">التقييم (من 5)</label>
+					<input type="number" step="0.1" name="rating" value={course.rating} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+
+				<div class="md:col-span-2">
+					<label class="block text-sm font-black text-slate-700 mb-2">رابط الصورة (URL)</label>
+					<input type="url" name="image" value={course.image} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left text-slate-600" dir="ltr" placeholder="https://..." />
+				</div>
+
+				<div>
+					<label class="block text-sm font-black text-slate-700 mb-2">ترتيب العرض (أرقام)</label>
+					<input type="number" name="display_order" value={course.display_order} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+			</div>
+
+			<hr class="border-slate-100 my-8" />
+
+			<!-- Complex JSON Fields -->
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2 flex justify-between">
+					<span>الباقات (JSON)</span>
+					<span class="text-xs text-blue-500 font-normal">يجب أن يكون بصيغة Array of Objects صالحة</span>
+				</label>
+				<textarea name="packages" rows="6" class="w-full p-4 bg-slate-900 text-green-400 font-mono text-sm border border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-left" dir="ltr">{course.packages}</textarea>
+				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: [{"name": "باقة 8 حصص", "sessions": 8, "pricePerSession": 25, "totalPrice": 200, "features": ["تأسيس قوي"]}]</p>
+			</div>
+
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2 flex justify-between">
+					<span>المنهج الدراسي (JSON)</span>
+				</label>
+				<textarea name="syllabus" rows="6" class="w-full p-4 bg-slate-900 text-green-400 font-mono text-sm border border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-left" dir="ltr">{course.syllabus}</textarea>
+				<p class="text-xs text-slate-400 mt-2 font-bold" dir="ltr">Example: [{"unit": "الوحدة الأولى", "lessons": ["الدرس الأول", "الدرس الثاني"]}]</p>
+			</div>
+
+			<hr class="border-slate-100 my-8" />
+
+			<div>
+				<label class="block text-sm font-black text-slate-700 mb-2">الوصف التفصيلي (Markdown اختياري)</label>
+				<textarea name="body" rows="6" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800">{course.body}</textarea>
+			</div>
+
+			<div class="flex justify-end pt-4">
+				<button type="submit" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-lg shadow-blue-600/30 hover:-translate-y-1">
+					<Save class="w-6 h-6" /> حفظ البيانات
+				</button>
+			</div>
+		</form>
+	</div>
+</DashboardLayout>

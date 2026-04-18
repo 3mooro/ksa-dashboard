@@ -1,0 +1,78 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { Plus, Edit2, Trash2 } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
+
+let courses = [];
+
+try {
+	const db = env.DB;
+	const { results } = await db.prepare("SELECT * FROM courses ORDER BY display_order ASC, created_at DESC").all();
+	if (results) {
+		courses = results;
+	}
+} catch (e) {
+	console.error("Database connection error:", e);
+}
+---
+
+<DashboardLayout title="إدارة الكورسات">
+	<div class="flex justify-between items-center mb-8">
+		<div>
+			<h2 class="text-3xl font-black text-slate-800">إدارة الكورسات</h2>
+			<p class="text-slate-500 font-bold mt-1">أضف، عدل، واحذف المواد الدراسية المعروضة في موقعك.</p>
+		</div>
+		<a href="/courses/add" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-blue-600/20 hover:-translate-y-0.5">
+			<Plus class="w-5 h-5" /> إضافة كورس جديد
+		</a>
+	</div>
+
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+		<div class="overflow-x-auto">
+			<table class="w-full text-right">
+				<thead>
+					<tr class="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-sm font-bold">
+						<th class="px-6 py-4">اسم الكورس</th>
+						<th class="px-6 py-4">المرحلة</th>
+						<th class="px-6 py-4">المدرب</th>
+						<th class="px-6 py-4 text-center">الترتيب</th>
+						<th class="px-6 py-4 text-center">الإجراءات</th>
+					</tr>
+				</thead>
+				<tbody>
+					{courses.length === 0 ? (
+						<tr>
+							<td colspan="5" class="px-6 py-12 text-center text-slate-400 font-bold">
+								لا توجد كورسات مضافة حالياً.
+							</td>
+						</tr>
+					) : (
+						courses.map((course) => (
+							<tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+								<td class="px-6 py-4 font-bold text-slate-800">{course.title}</td>
+								<td class="px-6 py-4">
+									<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+										{course.level === 'primary' ? 'ابتدائي' : course.level === 'middle' ? 'متوسط' : course.level === 'secondary' ? 'ثانوي' : course.level}
+									</span>
+								</td>
+								<td class="px-6 py-4 text-sm text-slate-600">{course.instructor || '-'}</td>
+								<td class="px-6 py-4 text-center text-sm font-bold text-slate-500">{course.display_order}</td>
+								<td class="px-6 py-4 flex items-center justify-center gap-3">
+									<a href={`/courses/edit?id=${course.id}`} class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors" title="تعديل">
+										<Edit2 class="w-4 h-4" />
+									</a>
+									<form method="POST" action="/api/courses/delete" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الكورس؟');">
+										<input type="hidden" name="id" value={course.id} />
+										<button type="submit" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors" title="حذف">
+											<Trash2 class="w-4 h-4" />
+										</button>
+									</form>
+								</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</DashboardLayout>

@@ -6,12 +6,6 @@ interface Props {
 	title: string;
 }
 const { title } = Astro.props;
-
-// حماية الصفحة: التأكد من وجود جلسة دخول نشطة (Cookie)
-const session = Astro.cookies.get('admin_session');
-if (!session) {
-	return Astro.redirect('/login');
-}
 ---
 <html lang="ar" dir="rtl">
 <head>
@@ -35,14 +29,17 @@ if (!session) {
 		<nav class="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
 			<p class="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">لوحة القيادة</p>
 			
-			<a href="/" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600/10 text-blue-400 font-bold transition-all border-r-4 border-blue-600">
+			<a href="/" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
 				<LayoutDashboard class="w-5 h-5" /> <span>نظرة عامة</span>
-			</a>
-			<a href="/students" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
-				<Users class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إدارة الطلاب (Leads)</span>
 			</a>
 			<a href="/courses" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
 				<BookOpen class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إدارة الكورسات</span>
+			</a>
+			<a href="/blog" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
+				<BookOpen class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إدارة المقالات</span>
+			</a>
+			<a href="/students" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
+				<Users class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إدارة الطلبات</span>
 			</a>
 		</nav>
 

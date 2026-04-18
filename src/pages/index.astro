@@ -3,6 +3,11 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { Users, MousePointerClick, BookOpen, TrendingUp } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
+const session = Astro.cookies.get('admin_session');
+if (!session) {
+	return Astro.redirect('/login');
+}
+
 let studentsCount = 0;
 
 try {
