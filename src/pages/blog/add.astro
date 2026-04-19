@@ -181,7 +181,7 @@ if (Astro.request.method === "POST") {
 			}
 		});
 
-		var form = document.querySelector('form');
+		var form = document.getElementById('content-form');
 		var bodyInput = document.querySelector('#body-input');
 		
 		form.onsubmit = function() {
@@ -210,4 +210,5 @@ if (Astro.request.method === "POST") {
 	.ql-editor p {
 		margin-bottom: 1rem;
 	}
+</style>
 </style>
