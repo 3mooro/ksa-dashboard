@@ -58,7 +58,7 @@ try {
 								<td class="px-6 py-4 text-sm text-slate-600">{course.instructor || '-'}</td>
 								<td class="px-6 py-4 text-center text-sm font-bold text-slate-500">{course.display_order}</td>
 								<td class="px-6 py-4 flex items-center justify-center gap-3">
-									<a href={`/courses/edit?id=${course.id}`} class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors" title="تعديل">
+									<a href={`/courses/add?id=${course.id}`} class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors" title="تعديل">
 										<Edit2 class="w-4 h-4" />
 									</a>
 									<form method="POST" action="/api/courses/delete" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الكورس؟');">
