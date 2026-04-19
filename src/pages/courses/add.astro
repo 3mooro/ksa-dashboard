@@ -204,13 +204,13 @@ if (Astro.request.method === "POST") {
 			}
 		});
 
-		var form = document.querySelector('form');
-		var bodyInput = document.querySelector('#body-input');
+		var bodyInput = document.getElementById('body-input');
 		
-		form.onsubmit = function() {
-			var html = document.querySelector('.ql-editor').innerHTML;
-			bodyInput.value = html;
-		};
+		quill.on('text-change', function() {
+			var html = quill.root.innerHTML;
+			if (html === '<p><br></p>') html = '';
+			if (bodyInput) bodyInput.value = html;
+		});
 	});
 </script>
 <style is:global>
