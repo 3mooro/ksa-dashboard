@@ -1,0 +1,139 @@
+---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { Save } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
+
+const db = env.DB;
+let error = "";
+let success = "";
+
+let siteSettings = {
+  hero_title: "",
+  hero_subtitle: "",
+  hero_image: "",
+  phone_number: "",
+  whatsapp_number: ""
+};
+
+if (Astro.request.method === "GET") {
+  try {
+    const existing = await db.prepare("SELECT * FROM site_settings WHERE id = 1").first();
+    if (existing) siteSettings = existing as any;
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+if (Astro.request.method === "POST") {
+  const data = await Astro.request.formData();
+  
+  siteSettings = {
+    hero_title: data.get("hero_title") as string,
+    hero_subtitle: data.get("hero_subtitle") as string,
+    hero_image: data.get("hero_image") as string,
+    phone_number: data.get("phone_number") as string,
+    whatsapp_number: data.get("whatsapp_number") as string,
+  } as any;
+
+  try {
+    await db.prepare(`
+      INSERT OR REPLACE INTO site_settings 
+      (id, hero_title, hero_subtitle, hero_image, phone_number, whatsapp_number) 
+      VALUES (1, ?, ?, ?, ?, ?)
+    `).bind(
+      siteSettings.hero_title, siteSettings.hero_subtitle, siteSettings.hero_image, siteSettings.phone_number, siteSettings.whatsapp_number
+    ).run();
+    
+    success = "تم حفظ الإعدادات بنجاح! سيتم تحديث الموقع الأساسي فوراً.";
+  } catch (e: any) {
+    error = e.message || "حدث خطأ أثناء الحفظ.";
+  }
+}
+---
+
+<DashboardLayout title="إعدادات الموقع">
+	<div class="mb-8">
+		<h2 class="text-3xl font-black text-slate-800">إعدادات الموقع الأساسي</h2>
+		<p class="text-slate-500 font-bold mt-1">تحكم في محتوى الصفحة الرئيسية وأرقام التواصل.</p>
+	</div>
+
+	{error && <div class="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 font-bold">{error}</div>}
+	{success && <div class="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-8 font-bold">{success}</div>}
+
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+		<form method="POST" class="space-y-8">
+			
+			<!-- القسم الأول: الواجهة الرئيسية -->
+			<div>
+				<h3 class="text-xl font-black text-slate-900 mb-4 border-b pb-2">الواجهة الرئيسية (Hero Section)</h3>
+				<div class="space-y-4">
+					<div>
+						<label class="block text-sm font-black text-slate-700 mb-2">العنوان الرئيسي</label>
+						<input type="text" name="hero_title" value={siteSettings.hero_title} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-800" />
+					</div>
+					<div>
+						<label class="block text-sm font-black text-slate-700 mb-2">النص الفرعي (الوصف)</label>
+						<textarea name="hero_subtitle" rows="3" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-800">{siteSettings.hero_subtitle}</textarea>
+					</div>
+					<div>
+						<label class="block text-sm font-black text-slate-700 mb-2">صورة الغلاف (رابط أو رفع من الجهاز)</label>
+						<div class="flex gap-4 items-center">
+							<input type="url" name="hero_image" id="heroImage-input" value={siteSettings.hero_image} class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-left font-bold text-slate-800" dir="ltr" placeholder="https://... أو اضغط لرفع صورة" />
+							<label class="cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-4 px-6 rounded-2xl transition-colors whitespace-nowrap">
+								رفع صورة
+								<input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp" class="hidden" />
+							</label>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- القسم الثاني: أرقام التواصل -->
+			<div>
+				<h3 class="text-xl font-black text-slate-900 mb-4 border-b pb-2">أرقام التواصل</h3>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label class="block text-sm font-black text-slate-700 mb-2">رقم الاتصال (يظهر للزوار)</label>
+						<input type="text" name="phone_number" value={siteSettings.phone_number} dir="ltr" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-800 text-left" />
+					</div>
+					<div>
+						<label class="block text-sm font-black text-slate-700 mb-2">رقم الواتساب (بالكود الدولي)</label>
+						<input type="text" name="whatsapp_number" value={siteSettings.whatsapp_number} dir="ltr" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-bold text-slate-800 text-left" />
+					</div>
+				</div>
+			</div>
+
+			<div class="flex justify-end pt-4">
+				<button type="submit" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-lg hover:-translate-y-1">
+					<Save class="w-6 h-6" /> حفظ الإعدادات
+				</button>
+			</div>
+		</form>
+	</div>
+</DashboardLayout>
+
+<script is:inline>
+	document.addEventListener('DOMContentLoaded', function() {
+		// Image Upload Base64 Handler
+		var imageUpload = document.getElementById('image-upload');
+		var heroImageInput = document.getElementById('heroImage-input');
+		
+		if (imageUpload && heroImageInput) {
+			imageUpload.addEventListener('change', function(e) {
+				var file = e.target.files[0];
+				if (!file) return;
+				
+				if (file.size > 2 * 1024 * 1024) {
+					alert("حجم الصورة كبير جداً. الرجاء اختيار صورة أقل من 2 ميجابايت.");
+					return;
+				}
+
+				var reader = new FileReader();
+				reader.onload = function(event) {
+					heroImageInput.value = event.target.result;
+				};
+				reader.readAsDataURL(file);
+			});
+		}
+	});
+</script>
