@@ -118,8 +118,15 @@ if (Astro.request.method === "POST") {
 				</div>
 
 				<div class="md:col-span-2">
-					<label class="block text-sm font-black text-slate-700 mb-2">رابط صورة الغلاف (URL)</label>
-					<input type="url" name="heroImage" value={post.heroImage} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left text-slate-600" dir="ltr" placeholder="https://..." />
+					<label class="block text-sm font-black text-slate-700 mb-2">صورة الغلاف (رابط أو رفع ملف)</label>
+					<div class="flex gap-4 items-center">
+						<input type="url" name="heroImage" id="heroImage-input" value={post.heroImage} class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left text-slate-600" dir="ltr" placeholder="https://... أو اضغط لرفع صورة" />
+						<label class="cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-4 px-6 rounded-2xl transition-colors whitespace-nowrap">
+							رفع صورة
+							<input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp" class="hidden" />
+						</label>
+					</div>
+					<p class="text-xs text-slate-500 mt-2 font-bold">يفضل رفع صور بحجم أقل من 1 ميجابايت لضمان سرعة الموقع.</p>
 				</div>
 
 				<div>
