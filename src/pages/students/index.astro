@@ -1,0 +1,67 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+
+let leads = [];
+
+try {
+	const db = env.DB;
+	const { results } = await db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
+	if (results) leads = results;
+} catch (e) {
+	console.error(e);
+}
+---
+
+<DashboardLayout title="إدارة الطلبات (Leads)">
+	<div class="mb-8">
+		<h2 class="text-3xl font-black text-slate-800">إدارة الطلبات والتسجيلات</h2>
+		<p class="text-slate-500 font-bold mt-1">تتبع أرقام الطلاب، الكورسات المطلوبة، وتحديث حالة الطلب.</p>
+	</div>
+
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+		<div class="overflow-x-auto">
+			<table class="w-full text-right">
+				<thead>
+					<tr class="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-sm font-bold">
+						<th class="px-6 py-4">اسم الطالب / ولي الأمر</th>
+						<th class="px-6 py-4">رقم الجوال</th>
+						<th class="px-6 py-4">الكورس المطلوب</th>
+						<th class="px-6 py-4">تاريخ الطلب</th>
+						<th class="px-6 py-4 text-center">الحالة</th>
+					</tr>
+				</thead>
+				<tbody>
+					{leads.length === 0 ? (
+						<tr>
+							<td colspan="5" class="px-6 py-12 text-center text-slate-400 font-bold">
+								لا توجد طلبات تسجيل جديدة حتى الآن.
+							</td>
+						</tr>
+					) : (
+						leads.map((lead: any) => (
+							<tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+								<td class="px-6 py-4 font-bold text-slate-800">{lead.customer_name}</td>
+								<td class="px-6 py-4 font-bold text-blue-600" dir="ltr"><a href={`https://wa.me/${lead.phone}`} target="_blank" class="hover:underline">{lead.phone}</a></td>
+								<td class="px-6 py-4 text-sm text-slate-600 font-bold">{lead.course_requested || 'غير محدد'}</td>
+								<td class="px-6 py-4 text-sm text-slate-500" dir="ltr">
+									{new Date(lead.created_at).toLocaleString('ar-EG')}
+								</td>
+								<td class="px-6 py-4 text-center">
+									<form method="POST" action="/api/students/update" class="inline-flex items-center gap-2">
+										<input type="hidden" name="id" value={lead.id} />
+										<select name="status" onchange="this.form.submit()" class={`text-xs font-bold rounded-full px-3 py-1 outline-none appearance-none cursor-pointer border ${lead.status === 'مكتمل' ? 'bg-green-100 text-green-700 border-green-200' : lead.status === 'تم التواصل' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+											<option value="جديد" selected={lead.status === 'جديد'}>🔴 جديد</option>
+											<option value="تم التواصل" selected={lead.status === 'تم التواصل'}>🟡 تم التواصل</option>
+											<option value="مكتمل" selected={lead.status === 'مكتمل'}>🟢 مسجل ومكتمل</option>
+										</select>
+									</form>
+								</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</DashboardLayout>
