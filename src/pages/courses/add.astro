@@ -211,6 +211,28 @@ if (Astro.request.method === "POST") {
 			if (html === '<p><br></p>') html = '';
 			if (bodyInput) bodyInput.value = html;
 		});
+
+		// Image Upload Base64 Handler
+		var imageUpload = document.getElementById('image-upload');
+		var imageInput = document.getElementById('image-input');
+		
+		if (imageUpload && imageInput) {
+			imageUpload.addEventListener('change', function(e) {
+				var file = e.target.files[0];
+				if (!file) return;
+				
+				if (file.size > 2 * 1024 * 1024) {
+					alert("حجم الصورة كبير جداً. الرجاء اختيار صورة أقل من 2 ميجابايت.");
+					return;
+				}
+
+				var reader = new FileReader();
+				reader.onload = function(event) {
+					imageInput.value = event.target.result;
+				};
+				reader.readAsDataURL(file);
+			});
+		}
 	});
 </script>
 <style is:global>
