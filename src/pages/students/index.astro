@@ -1,67 +1,130 @@
 ---
+export const prerender = false;
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import { env } from 'cloudflare:workers';
 
-let leads = [];
+const db = env.DB;
+let activeSubscriptions: any[] = [];
+let allStudents: any[] = [];
 
-try {
-	const db = env.DB;
-	const { results } = await db.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
-	if (results) leads = results;
-} catch (e) {
-	console.error(e);
+if (db) {
+  try {
+    const res = await db.prepare(`
+      SELECT cs.*, sa.name, sa.phone, t.name as teacher_name
+      FROM course_subscriptions cs 
+      JOIN student_accounts sa ON cs.student_id = sa.id 
+      JOIN teachers t ON cs.teacher_id = t.id
+      WHERE cs.status = 'active' 
+      ORDER BY cs.created_at DESC
+    `).all();
+    activeSubscriptions = res.results || [];
+
+    const stuRes = await db.prepare('SELECT id, name, phone FROM student_accounts').all();
+    allStudents = stuRes.results || [];
+  } catch (e) {
+    console.error(e);
+  }
+} else {
+  activeSubscriptions = [
+    { id: 1, name: 'عمر أشرف', phone: '0501234567', course_name: 'رياضيات', remaining_sessions: 5, teacher_name: 'أحمد' }
+  ];
+  allStudents = [{ id: 1, name: 'عمر أشرف', phone: '0501234567' }];
 }
 ---
 
-<DashboardLayout title="إدارة الطلبات (Leads)">
-	<div class="mb-8">
-		<h2 class="text-3xl font-black text-slate-800">إدارة الطلبات والتسجيلات</h2>
-		<p class="text-slate-500 font-bold mt-1">تتبع أرقام الطلاب، الكورسات المطلوبة، وتحديث حالة الطلب.</p>
-	</div>
+<DashboardLayout title="الطلاب والاشتراكات">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold font-cairo">الاشتراكات النشطة وتسجيل الحصص</h1>
+  </div>
 
-	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-		<div class="overflow-x-auto">
-			<table class="w-full text-right">
-				<thead>
-					<tr class="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-sm font-bold">
-						<th class="px-6 py-4">اسم الطالب / ولي الأمر</th>
-						<th class="px-6 py-4">رقم الجوال</th>
-						<th class="px-6 py-4">الكورس المطلوب</th>
-						<th class="px-6 py-4">تاريخ الطلب</th>
-						<th class="px-6 py-4 text-center">الحالة</th>
-					</tr>
-				</thead>
-				<tbody>
-					{leads.length === 0 ? (
-						<tr>
-							<td colspan="5" class="px-6 py-12 text-center text-slate-400 font-bold">
-								لا توجد طلبات تسجيل جديدة حتى الآن.
-							</td>
-						</tr>
-					) : (
-						leads.map((lead: any) => (
-							<tr class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-								<td class="px-6 py-4 font-bold text-slate-800">{lead.customer_name}</td>
-								<td class="px-6 py-4 font-bold text-blue-600" dir="ltr"><a href={`https://wa.me/${lead.phone}`} target="_blank" class="hover:underline">{lead.phone}</a></td>
-								<td class="px-6 py-4 text-sm text-slate-600 font-bold">{lead.course_requested || 'غير محدد'}</td>
-								<td class="px-6 py-4 text-sm text-slate-500" dir="ltr">
-									{new Date(lead.created_at).toLocaleString('ar-EG')}
-								</td>
-								<td class="px-6 py-4 text-center">
-									<form method="POST" action="/api/students/update" class="inline-flex items-center gap-2">
-										<input type="hidden" name="id" value={lead.id} />
-										<select name="status" onchange="this.form.submit()" class={`text-xs font-bold rounded-full px-3 py-1 outline-none appearance-none cursor-pointer border ${lead.status === 'مكتمل' ? 'bg-green-100 text-green-700 border-green-200' : lead.status === 'تم التواصل' ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
-											<option value="جديد" selected={lead.status === 'جديد'}>🔴 جديد</option>
-											<option value="تم التواصل" selected={lead.status === 'تم التواصل'}>🟡 تم التواصل</option>
-											<option value="مكتمل" selected={lead.status === 'مكتمل'}>🟢 مسجل ومكتمل</option>
-										</select>
-									</form>
-								</td>
-							</tr>
-						))
-					)}
-				</tbody>
-			</table>
-		</div>
-	</div>
+  <div class="bg-card border rounded-3xl overflow-hidden shadow-sm mb-10">
+    <div class="overflow-x-auto">
+      <table class="w-full text-right border-collapse">
+        <thead>
+          <tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+            <th class="p-4">اسم الطالب</th>
+            <th class="p-4">الكورس</th>
+            <th class="p-4">المعلم</th>
+            <th class="p-4">الحصص المتبقية</th>
+            <th class="p-4">الخصم / ملاحظات الدفع</th>
+            <th class="p-4">إجراء (تسجيل حصة)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y text-sm">
+          {activeSubscriptions.map(sub => (
+            <tr class="hover:bg-muted/30 transition-colors">
+              <td class="p-4 font-bold">{sub.name}</td>
+              <td class="p-4"><span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold">{sub.course_name}</span></td>
+              <td class="p-4">{sub.teacher_name}</td>
+              <td class="p-4 text-lg font-black text-primary">{sub.remaining_sessions}</td>
+              <td class="p-4">
+                <form action="/api/students/update-discount" method="POST" class="flex gap-2 min-w-[200px]">
+                  <input type="hidden" name="subscription_id" value={sub.id} />
+                  <input type="text" name="discount_note" placeholder="ملاحظة أو خصم..." value={sub.discount_note || ''} class="w-full bg-background border rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-primary" />
+                  <button type="submit" class="bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg font-bold transition-colors">
+                    حفظ
+                  </button>
+                </form>
+              </td>
+              <td class="p-4 flex gap-2">
+                <form action="/api/students/log-session" method="POST">
+                  <input type="hidden" name="subscription_id" value={sub.id} />
+                  <input type="hidden" name="teacher_id" value={sub.teacher_id} />
+                  <button type="submit" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg font-bold transition-colors" disabled={sub.remaining_sessions <= 0}>
+                    تسجيل حصة (-1 للطالب، +1 للمعلم)
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+          {activeSubscriptions.length === 0 && (
+            <tr>
+              <td colspan="5" class="p-8 text-center text-muted-foreground font-bold">لا توجد اشتراكات نشطة</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="flex justify-between items-center mb-8 mt-16">
+    <h1 class="text-2xl font-bold font-cairo">إدارة حسابات الطلاب (تغيير كلمة المرور)</h1>
+  </div>
+
+  <div class="bg-card border rounded-3xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-right border-collapse">
+        <thead>
+          <tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+            <th class="p-4">الاسم</th>
+            <th class="p-4">رقم الجوال</th>
+            <th class="p-4">إعادة تعيين كلمة المرور</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y text-sm">
+          {allStudents.map(student => (
+            <tr class="hover:bg-muted/30 transition-colors">
+              <td class="p-4 font-bold">{student.name}</td>
+              <td class="p-4" dir="ltr">{student.phone}</td>
+              <td class="p-4 flex gap-4 items-center">
+                <form action="/api/students/reset-password" method="POST" class="flex gap-2">
+                  <input type="hidden" name="student_id" value={student.id} />
+                  <input type="text" name="new_password" placeholder="كلمة المرور الجديدة" required class="bg-background border rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-primary" />
+                  <button type="submit" class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-bold transition-colors">
+                    حفظ الكلمة الجديدة
+                  </button>
+                </form>
+                <form action="/api/students/delete" method="POST" onsubmit="return confirm('هل أنت متأكد من مسح حساب هذا الطالب؟ سيتم مسح كافة اشتراكاته أيضاً ولن يمكن التراجع!');">
+                  <input type="hidden" name="student_id" value={student.id} />
+                  <button type="submit" class="bg-red-500 text-white hover:bg-red-600 px-4 py-1.5 rounded-lg font-bold transition-colors shadow-sm shadow-red-500/20">
+                    مسح الحساب
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </DashboardLayout>

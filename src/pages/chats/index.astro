@@ -1,0 +1,93 @@
+---
+export const prerender = false;
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { MessageSquare, Users } from 'lucide-astro';
+import { env } from 'cloudflare:workers';
+
+let activeChats: any[] = [];
+let error = "";
+
+try {
+	const db = env.DB;
+	if (db) {
+		// Get all subscriptions that have a teacher assigned, along with the latest message
+		const { results } = await db.prepare(`
+			SELECT 
+				cs.id as subscription_id, 
+				cs.course_name, 
+				sa.name as student_name, 
+				t.name as teacher_name,
+				(SELECT message FROM chat_messages WHERE receiver_id = cs.id ORDER BY created_at DESC LIMIT 1) as last_message,
+				(SELECT created_at FROM chat_messages WHERE receiver_id = cs.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+				(SELECT COUNT(*) FROM chat_messages WHERE receiver_id = cs.id) as message_count
+			FROM course_subscriptions cs
+			JOIN student_accounts sa ON cs.student_id = sa.id
+			JOIN teachers t ON cs.teacher_id = t.id
+			WHERE cs.status = 'active' AND cs.teacher_id IS NOT NULL
+			ORDER BY last_message_time DESC NULLS LAST
+		`).all();
+		
+		if (results) activeChats = results;
+	} else {
+		// Mock data
+		activeChats = [
+			{ subscription_id: 1, course_name: 'الرياضيات', student_name: 'عمر أشرف', teacher_name: 'أستاذ أحمد', last_message: 'مرحبا أستاذي!', last_message_time: '2026-07-21 10:00:00', message_count: 5 }
+		];
+	}
+} catch (e) {
+	console.error(e);
+	error = "حدث خطأ أثناء جلب بيانات المحادثات.";
+}
+---
+
+<DashboardLayout title="مراقبة المحادثات">
+	<div class="flex justify-between items-center mb-8">
+		<div>
+			<h2 class="text-3xl font-black text-slate-800">مراقبة المحادثات</h2>
+			<p class="text-slate-500 font-bold mt-1">تتبع المحادثات الجارية بين الطلاب والمعلمين.</p>
+		</div>
+	</div>
+
+	{error && <div class="bg-red-50 text-red-700 px-6 py-4 rounded-2xl mb-8 font-bold border border-red-200">{error}</div>}
+
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+		{activeChats.length === 0 ? (
+			<div class="col-span-full bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+				<p class="text-slate-400 font-bold text-lg">لا توجد محادثات نشطة حالياً.</p>
+			</div>
+		) : (
+			activeChats.map((chat: any) => (
+				<a href={`/chats/${chat.subscription_id}`} class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition-shadow hover:-translate-y-1 block cursor-pointer">
+					<div class="flex justify-between items-start mb-4">
+						<div>
+							<h3 class="text-xl font-black text-slate-800">{chat.course_name}</h3>
+							<div class="flex items-center gap-2 mt-2 text-sm font-bold text-slate-500">
+								<Users class="w-4 h-4 text-blue-500" />
+								<span>الطالب: <span class="text-slate-700">{chat.student_name}</span></span>
+							</div>
+							<div class="flex items-center gap-2 mt-1 text-sm font-bold text-slate-500">
+								<Users class="w-4 h-4 text-green-500" />
+								<span>المعلم: <span class="text-slate-700">{chat.teacher_name}</span></span>
+							</div>
+						</div>
+						<div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-sm font-black flex flex-col items-center">
+							<MessageSquare class="w-4 h-4 mb-1" />
+							{chat.message_count}
+						</div>
+					</div>
+
+					{chat.message_count > 0 ? (
+						<div class="mt-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+							<p class="text-sm font-bold text-slate-700 truncate">{chat.last_message || 'صورة/مرفق'}</p>
+							<p class="text-xs font-bold text-slate-400 mt-2" dir="ltr">{new Date(chat.last_message_time).toLocaleString('ar-EG')}</p>
+						</div>
+					) : (
+						<div class="mt-4 bg-slate-50 rounded-2xl p-4 border border-dashed border-slate-200 text-center text-slate-400 font-bold text-sm">
+							لا توجد رسائل بعد
+						</div>
+					)}
+				</a>
+			))
+		)}
+	</div>
+</DashboardLayout>

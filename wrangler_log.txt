@@ -1,5 +1,5 @@
 
- ⛅️ wrangler 4.83.0 (update available 4.93.0)
+ ⛅️ wrangler 4.83.0 (update available 4.94.0)
 ─────────────────────────────────────────────
 Your Worker has access to the following bindings:
 Binding                   Resource          Mode
@@ -12,71 +12,75 @@ Attaching additional modules:
 ┌───────────────────────────────────────────────────────────┬──────┬────────────┐
 │ Name                                                      │ Type │ Size       │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/ArrowRight_BKIciRkM.mjs                            │ esm  │ 0.82 KiB   │
+│ chunks/ArrowRight_Bhya0rgi.mjs                            │ esm  │ 0.82 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/DashboardLayout_BBglC9Rh.mjs                       │ esm  │ 11.15 KiB  │
+│ chunks/DashboardLayout_hrgXTfiy.mjs                       │ esm  │ 11.96 KiB  │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/Save_CniLlnnS.mjs                                  │ esm  │ 0.94 KiB   │
+│ chunks/Save_BoVobQ2k.mjs                                  │ esm  │ 0.94 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/Trash2_DfI-sr-o.mjs                                │ esm  │ 1.98 KiB   │
+│ chunks/Trash2_CE2jWiqs.mjs                                │ esm  │ 1.98 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/_virtual_astro_server-island-manifest_CFl7y3Qj.mjs │ esm  │ 0.22 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/_virtual_astro_session-driver_Csu6PJY6.mjs         │ esm  │ 2.92 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/add_C3Z5FcJ_.mjs                                   │ esm  │ 11.51 KiB  │
+│ chunks/add_BnFn1NlD.mjs                                   │ esm  │ 12.03 KiB  │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/add_u9igkU1e.mjs                                   │ esm  │ 13.16 KiB  │
+│ chunks/add_L3GIQTli.mjs                                   │ esm  │ 13.16 KiB  │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/astro-component_BtwaPwju.mjs                       │ esm  │ 1.19 KiB   │
+│ chunks/astro-component_YEhwafPP.mjs                       │ esm  │ 1.19 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/delete_BAs1gxG_.mjs                                │ esm  │ 0.84 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/delete_C6If6F2l.mjs                                │ esm  │ 0.83 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/image-service-workerd_BTEu8Uzq.mjs                 │ esm  │ 0.37 KiB   │
+│ chunks/image-service-workerd_D8QAC1s6.mjs                 │ esm  │ 0.37 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/image-transform-endpoint_Dn5n1PgK.mjs              │ esm  │ 69.71 KiB  │
+│ chunks/image-transform-endpoint_CSg0KbC1.mjs              │ esm  │ 69.71 KiB  │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/index_BLIAZEQh.mjs                                 │ esm  │ 4.13 KiB   │
+│ chunks/index_BB65PhV6.mjs                                 │ esm  │ 3.83 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/index_BrjbOXDR.mjs                                 │ esm  │ 3.88 KiB   │
+│ chunks/index_BHJMksCB.mjs                                 │ esm  │ 3.88 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/index_CL4tPebR.mjs                                 │ esm  │ 5.02 KiB   │
+│ chunks/index_BsI-cxO1.mjs                                 │ esm  │ 5.02 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/login_CQdQc4Z-.mjs                                 │ esm  │ 4.45 KiB   │
+│ chunks/index_CFT7Uf2h.mjs                                 │ esm  │ 4.13 KiB   │
+├───────────────────────────────────────────────────────────┼──────┼────────────┤
+│ chunks/login_HKNlswKP.mjs                                 │ esm  │ 4.45 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/logout_LPoN7GCR.mjs                                │ esm  │ 0.38 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ chunks/noop-entrypoint_DsBX4kaI.mjs                       │ esm  │ 0.10 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/settings_BdxrvCaJ.mjs                              │ esm  │ 7.21 KiB   │
+│ chunks/settings_DJR0A_j2.mjs                              │ esm  │ 7.21 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ chunks/worker-entry_Bap7kRPg.mjs                          │ esm  │ 435.21 KiB │
+│ chunks/update_C-I0HFk8.mjs                                │ esm  │ 0.72 KiB   │
+├───────────────────────────────────────────────────────────┼──────┼────────────┤
+│ chunks/worker-entry_DmtyMCBC.mjs                          │ esm  │ 437.76 KiB │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
 │ virtual_astro_middleware.mjs                              │ esm  │ 0.12 KiB   │
 ├───────────────────────────────────────────────────────────┼──────┼────────────┤
-│ Total (22 modules)                                        │      │ 576.14 KiB │
+│ Total (24 modules)                                        │      │ 584.57 KiB │
 └───────────────────────────────────────────────────────────┴──────┴────────────┘
 ⎔ Starting local server...
-[wrangler:info] Ready on http://localhost:8815
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mDatabase connection error: Error: D1_ERROR: no such table: students: SQLITE_ERROR[0m
+[wrangler:info] Ready on http://localhost:8835
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mError: D1_ERROR: no such table: leads: SQLITE_ERROR[0m
 
       at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:139:19)
-      at null.<anonymous> (async cloudflare-internal:d1-api:323:39)
+      at null.<anonymous> (async cloudflare-internal:d1-api:366:41)
       ... 7 lines matching cause stack trace ...
-      at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:11854:20) {
-    [cause]: Error: no such table: students: SQLITE_ERROR
+      at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:11854:20) {
+    [cause]: Error: no such table: leads: SQLITE_ERROR
         at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:140:24)
-        at null.<anonymous> (async cloudflare-internal:d1-api:323:39)
-        at null.<anonymous> (async file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/index_CL4tPebR.mjs:27:20)
-        at async callComponentAsTemplateResultOrResponse (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:6419:25)
-        at async renderToReadableStream (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:6367:26)
-        at async renderPage (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:7616:14)
-        at async lastNext (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:10919:25)
-        at async callMiddleware (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:7708:10)
-        at async RenderContext.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:10953:73)
-        at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:11854:20)
+        at null.<anonymous> (async cloudflare-internal:d1-api:366:41)
+        at null.<anonymous> (async file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/index_BB65PhV6.mjs:11:25)
+        at async callComponentAsTemplateResultOrResponse (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:6419:25)
+        at async renderToReadableStream (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:6367:26)
+        at async renderPage (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:7616:14)
+        at async lastNext (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:10919:25)
+        at async callMiddleware (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:7708:10)
+        at async RenderContext.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:10953:73)
+        at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:11854:20)
   }
 
 
@@ -85,38 +89,21 @@ Attaching additional modules:
       at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:139:19)
       at null.<anonymous> (async cloudflare-internal:d1-api:323:39)
       ... 7 lines matching cause stack trace ...
-      at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:11854:20) {
+      at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:11854:20) {
     [cause]: Error: no such table: students: SQLITE_ERROR
         at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:140:24)
         at null.<anonymous> (async cloudflare-internal:d1-api:323:39)
-        at null.<anonymous> (async file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/index_CL4tPebR.mjs:27:20)
-        at async callComponentAsTemplateResultOrResponse (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:6419:25)
-        at async renderToReadableStream (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:6367:26)
-        at async renderPage (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:7616:14)
-        at async lastNext (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:10919:25)
-        at async callMiddleware (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:7708:10)
-        at async RenderContext.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:10953:73)
-        at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_Bap7kRPg.mjs:11854:20)
+        at null.<anonymous> (async file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/index_BsI-cxO1.mjs:27:20)
+        at async callComponentAsTemplateResultOrResponse (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:6419:25)
+        at async renderToReadableStream (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:6367:26)
+        at async renderPage (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:7616:14)
+        at async lastNext (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:10919:25)
+        at async callMiddleware (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:7708:10)
+        at async RenderContext.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:10953:73)
+        at async App.render (file:///home/omar/Desktop/my%20web/ksa-dashboard/dist/server/chunks/worker-entry_DmtyMCBC.mjs:11854:20)
   }
 
 
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUncaught exception: workerd/jsg/_virtual_includes/iterator/workerd/jsg/value.h:1480: failed: remote.jsg.ReferenceError: Settings is not defined[0m
-
-  stack: /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2eb64b0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea93e0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea9fdc /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6c990 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6ce40 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6ddc0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6e770 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2d27ab9 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@1fd1da0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@372dcda /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@372ce30 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@1ff0be0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea97b0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea9b66 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6e0c0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6e770 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2d27ab9 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@1fd1da0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@372dcda /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@372ce30 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@1ff0be0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea97b0 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2ea9b66 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149db3 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@2c6e267 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@5149c08 /home/omar/Desktop/my web/ksa-dashboard/node_modules/@cloudflare/workerd-linux-64/bin/workerd@514aadd
-
-
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUncaught ReferenceError: Settings is not defined [0m
-
-
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUncaught ReferenceError: Settings is not defined [0m
-
-
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUncaught ReferenceError: Settings is not defined [0m
-
-
-[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mUncaught ReferenceError: Settings is not defined [0m
-
-
-[wrangler:info] HEAD / 500 Internal Server Error (132ms)
-[wrangler:info] GET / 200 OK (27ms)
-🪵  Logs were written to "/home/omar/.config/.wrangler/logs/wrangler-2026-05-19_21-47-31_934.log"
+[wrangler:info] HEAD /students 200 OK (1338ms)
+[wrangler:info] HEAD / 200 OK (49ms)
+🪵  Logs were written to "/home/omar/.config/.wrangler/logs/wrangler-2026-05-26_12-26-00_521.log"

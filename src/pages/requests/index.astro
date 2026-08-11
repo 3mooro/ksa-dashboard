@@ -1,0 +1,86 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+
+const db = env.DB;
+let pendingRequests: any[] = [];
+let teachers: any[] = [];
+
+if (db) {
+  try {
+    const res = await db.prepare(`
+      SELECT cs.*, sa.name, sa.phone 
+      FROM course_subscriptions cs 
+      JOIN student_accounts sa ON cs.student_id = sa.id 
+      WHERE cs.status = 'pending' 
+      ORDER BY cs.created_at DESC
+    `).all();
+    pendingRequests = res.results || [];
+
+    const tRes = await db.prepare('SELECT id, name FROM teachers').all();
+    teachers = tRes.results || [];
+  } catch (e) {
+    console.error(e);
+  }
+} else {
+  // Mock data for local testing
+  pendingRequests = [
+    { id: 1, name: 'عمر أشرف', phone: '0501234567', course_name: 'رياضيات اول ثانوي', package_name: '8 حصص', created_at: '2026-07-11 10:00:00' }
+  ];
+  teachers = [{ id: 1, name: 'أستاذ أحمد' }, { id: 2, name: 'أستاذ محمود' }];
+}
+---
+
+<DashboardLayout title="طلبات التسجيل">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold font-cairo">طلبات التسجيل الجديدة</h1>
+  </div>
+
+  <div class="bg-card border rounded-3xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-right border-collapse">
+        <thead>
+          <tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+            <th class="p-4">تاريخ الطلب</th>
+            <th class="p-4">اسم الطالب</th>
+            <th class="p-4">رقم الجوال</th>
+            <th class="p-4">الكورس المطلوب</th>
+            <th class="p-4">الباقة</th>
+            <th class="p-4">إجراءات (تعيين وتفعيل)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y text-sm">
+          {pendingRequests.map(req => (
+            <tr class="hover:bg-muted/30 transition-colors">
+              <td class="p-4" dir="ltr">{new Date(req.created_at).toLocaleDateString('ar-EG')}</td>
+              <td class="p-4 font-bold">{req.name}</td>
+              <td class="p-4" dir="ltr">{req.phone}</td>
+              <td class="p-4"><span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold">{req.course_name}</span></td>
+              <td class="p-4">{req.package_name}</td>
+              <td class="p-4 flex gap-2 items-center">
+                <form action="/api/requests/approve" method="POST" class="flex gap-2 w-full">
+                  <input type="hidden" name="subscription_id" value={req.id} />
+                  <input type="number" name="sessions" placeholder="عدد الحصص" required defaultValue={req.package_name && req.package_name.includes('8') ? '8' : ''} class="w-24 bg-background border rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-green-500" />
+                  <select name="teacher_id" required class="bg-background border rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-green-500 min-w-[120px]">
+                    <option value="" disabled selected>اختر المعلم</option>
+                    {teachers.map((t: any) => (
+                      <option value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  <button type="submit" class="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded-lg font-bold transition-colors">
+                    تفعيل الاشتراك
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+          {pendingRequests.length === 0 && (
+            <tr>
+              <td colspan="6" class="p-8 text-center text-muted-foreground font-bold">لا توجد طلبات جديدة حالياً</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</DashboardLayout>

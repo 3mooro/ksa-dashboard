@@ -1,4 +1,5 @@
 ---
+export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import { Users, MousePointerClick, BookOpen, TrendingUp } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
@@ -12,7 +13,7 @@ let studentsCount = 0;
 
 try {
 	const db = env.DB;
-	const result = await db.prepare("SELECT COUNT(*) as count FROM students").first();
+	const result = await db.prepare("SELECT COUNT(*) as count FROM student_accounts").first();
 	if (result) {
 		studentsCount = result.count as number;
 	}

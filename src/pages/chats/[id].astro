@@ -1,0 +1,92 @@
+---
+export const prerender = false;
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { env } from 'cloudflare:workers';
+
+const { id } = Astro.params;
+const db = env.DB;
+let chatInfo: any = null;
+let messages: any[] = [];
+let error = "";
+
+if (db) {
+  try {
+    const sub = await db.prepare(`
+      SELECT cs.*, sa.name as student_name, t.name as teacher_name 
+      FROM course_subscriptions cs 
+      LEFT JOIN student_accounts sa ON cs.student_id = sa.id 
+      LEFT JOIN teachers t ON cs.teacher_id = t.id 
+      WHERE cs.id = ?
+    `).bind(id).first();
+
+    if (!sub) return Astro.redirect('/chats');
+    chatInfo = sub;
+
+    const msgs = await db.prepare('SELECT * FROM chat_messages WHERE receiver_id = ? ORDER BY created_at ASC').bind(id).all();
+    messages = msgs.results || [];
+  } catch (e) {
+    console.error(e);
+    error = "حدث خطأ أثناء جلب الرسائل.";
+  }
+} else {
+  chatInfo = { course_name: 'كورس تجريبي', student_name: 'طالب تجريبي', teacher_name: 'معلم تجريبي' };
+  messages = [
+    { sender_type: 'student', message: 'السلام عليكم', created_at: new Date().toISOString() },
+    { sender_type: 'teacher', message: 'وعليكم السلام', created_at: new Date().toISOString() }
+  ];
+}
+---
+
+<DashboardLayout title={`محادثة: ${chatInfo?.course_name}`}>
+  <div class="flex items-center gap-4 mb-8">
+    <a href="/chats" class="p-2 bg-white hover:bg-slate-50 border rounded-xl transition-colors shadow-sm text-slate-500">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+    <div>
+      <h2 class="text-2xl font-black text-slate-800">مراقبة محادثة: {chatInfo?.course_name}</h2>
+      <p class="text-slate-500 font-bold mt-1">الطالب: {chatInfo?.student_name} | المعلم: {chatInfo?.teacher_name}</p>
+    </div>
+  </div>
+
+  <div class="bg-slate-100 rounded-3xl border border-slate-200 overflow-hidden shadow-inner flex flex-col h-[600px] max-h-[70vh]">
+    <div class="flex-1 overflow-y-auto p-6 space-y-4">
+      {messages.length === 0 ? (
+        <div class="text-center text-slate-400 font-bold mt-10">لا توجد رسائل سابقة.</div>
+      ) : (
+        messages.map((msg) => {
+          const isStudent = msg.sender_type === 'student';
+          const senderName = isStudent ? chatInfo.student_name : chatInfo.teacher_name;
+          const time = new Date(msg.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+          return (
+            <div class={`flex flex-col ${isStudent ? 'items-start' : 'items-end'}`}>
+              <span class="text-xs font-black text-slate-500 mb-1 px-1">{senderName} ({isStudent ? 'طالب' : 'معلم'})</span>
+              <div class={`${isStudent ? 'bg-white text-slate-800 border' : 'bg-blue-600 text-white'} p-4 rounded-2xl max-w-[85%] md:max-w-[70%] shadow-sm`}>
+                {msg.image_url && <a href={msg.image_url} target="_blank"><img src={msg.image_url} class="rounded-xl mb-2 max-h-60 object-contain w-full" /></a>}
+                {msg.message && <p class="whitespace-pre-wrap leading-relaxed font-medium">{msg.message}</p>}
+              </div>
+              <span class="text-[10px] text-slate-400 font-bold mt-1 px-1 local-time" data-utc={msg.created_at}></span>
+            </div>
+          );
+        })
+      )}
+    </div>
+    <div class="bg-white border-t p-4 text-center">
+      <p class="text-slate-400 font-bold text-sm">وضع المراقبة: لا يمكنك إرسال رسائل في هذه المحادثة.</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const timeElements = document.querySelectorAll('.local-time');
+      timeElements.forEach((el: any) => {
+        const utcStr = el.getAttribute('data-utc');
+        if (utcStr) {
+          const formattedUtc = utcStr.replace(' ', 'T') + 'Z';
+          const localTime = new Date(formattedUtc).toLocaleTimeString(navigator.language || 'ar-EG', { hour: '2-digit', minute: '2-digit' });
+          el.textContent = localTime;
+        }
+      });
+    });
+  </script>
+</DashboardLayout>

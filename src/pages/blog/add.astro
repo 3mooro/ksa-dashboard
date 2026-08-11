@@ -10,7 +10,7 @@ const id = url.searchParams.get('id');
 let error = "";
 let success = "";
 let post = {
-  slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: ""
+  slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", imageAlt: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: ""
 };
 
 // Fetch existing post if ID is provided (Edit mode)
@@ -41,6 +41,7 @@ if (Astro.request.method === "POST") {
     description: data.get("description") as string,
     pubDate: data.get("pubDate") as string,
     heroImage: data.get("heroImage") as string,
+    imageAlt: data.get("imageAlt") as string,
     author: data.get("author") as string,
     readingTime: data.get("readingTime") as string,
     tags: data.get("tags") as string,
@@ -56,22 +57,22 @@ if (Astro.request.method === "POST") {
     if (id) {
       await db.prepare(`
         UPDATE blog SET 
-          slug = ?, title = ?, description = ?, pubDate = ?, heroImage = ?, author = ?, readingTime = ?, tags = ?, body = ?, updated_at = CURRENT_TIMESTAMP
+          slug = ?, title = ?, description = ?, pubDate = ?, heroImage = ?, imageAlt = ?, author = ?, readingTime = ?, tags = ?, body = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
-        post.slug, post.title, post.description, isoDate, post.heroImage, post.author, post.readingTime, post.tags, post.body, id
+        post.slug, post.title, post.description, isoDate, post.heroImage, post.imageAlt, post.author, post.readingTime, post.tags, post.body, id
       ).run();
       success = "تم تحديث المقال بنجاح!";
     } else {
       await db.prepare(`
-        INSERT INTO blog (slug, title, description, pubDate, heroImage, author, readingTime, tags, body)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO blog (slug, title, description, pubDate, heroImage, imageAlt, author, readingTime, tags, body)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
-        post.slug, post.title, post.description, isoDate, post.heroImage, post.author, post.readingTime, post.tags, post.body
+        post.slug, post.title, post.description, isoDate, post.heroImage, post.imageAlt, post.author, post.readingTime, post.tags, post.body
       ).run();
       success = "تم نشر المقال بنجاح!";
       // Clear form on add
-      post = { slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: "" } as any;
+      post = { slug: "", title: "", description: "", pubDate: new Date().toISOString().split('T')[0], heroImage: "", imageAlt: "", author: "أكاديمية KSA", readingTime: "5 دقائق", tags: "[]", body: "" } as any;
     }
   } catch (e: any) {
     error = e.message || "حدث خطأ أثناء الحفظ. تأكد من عدم تكرار الرابط (Slug).";
@@ -129,6 +130,11 @@ if (Astro.request.method === "POST") {
 					<p class="text-xs text-slate-500 mt-2 font-bold">يفضل رفع صور بحجم أقل من 1 ميجابايت لضمان سرعة الموقع.</p>
 				</div>
 
+				<div class="md:col-span-2">
+					<label class="block text-sm font-black text-slate-700 mb-2">النص البديل للصورة (Alt Text - ضروري جداً للسيو)</label>
+					<input type="text" name="imageAlt" value={post.imageAlt} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" placeholder="وصف دقيق للصورة ليقرأه جوجل ومحركات البحث..." />
+				</div>
+
 				<div>
 					<label class="block text-sm font-black text-slate-700 mb-2">الكاتب</label>
 					<input type="text" name="author" value={post.author} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
@@ -176,15 +182,40 @@ if (Astro.request.method === "POST") {
 		var quill = new Quill('#editor-container', {
 			theme: 'snow',
 			modules: {
-				toolbar: [
-					[{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-					['bold', 'italic', 'underline', 'strike'],
-					[{ 'color': [] }, { 'background': [] }],
-					[{ 'align': [] }],
-					[{ 'list': 'ordered'}, { 'list': 'bullet' }],
-					['link', 'image', 'video'],
-					['clean']
-				]
+				toolbar: {
+					container: [
+						[{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+						['bold', 'italic', 'underline', 'strike'],
+						[{ 'color': [] }, { 'background': [] }],
+						[{ 'align': [] }],
+						[{ 'list': 'ordered'}, { 'list': 'bullet' }],
+						['link', 'image'],
+						['clean']
+					],
+					handlers: {
+						image: function() {
+							var range = this.quill.getSelection();
+							var value = prompt('أدخل رابط الصورة:');
+							if(value){
+								var alt = prompt('أدخل النص البديل للصورة (SEO):');
+								this.quill.insertEmbed(range.index, 'image', value, Quill.sources.USER);
+								if(alt) {
+									// Add alt text to the inserted image
+									setTimeout(() => {
+										const imgs = document.querySelectorAll('#editor-container img');
+										imgs.forEach(img => {
+											if(img.src === value && !img.alt) {
+												img.alt = alt;
+												img.title = alt;
+											}
+										});
+									}, 100);
+								}
+								this.quill.setSelection(range.index + 1);
+							}
+						}
+					}
+				}
 			}
 		});
 
@@ -196,7 +227,7 @@ if (Astro.request.method === "POST") {
 			if (bodyInput) bodyInput.value = html;
 		});
 
-		// Image Upload Base64 Handler
+		// Image Upload Base64 Handler with Compression
 		var imageUpload = document.getElementById('image-upload');
 		var heroImageInput = document.getElementById('heroImage-input');
 		
@@ -205,14 +236,38 @@ if (Astro.request.method === "POST") {
 				var file = e.target.files[0];
 				if (!file) return;
 				
-				if (file.size > 2 * 1024 * 1024) {
-					alert("حجم الصورة كبير جداً. الرجاء اختيار صورة أقل من 2 ميجابايت.");
-					return;
-				}
-
 				var reader = new FileReader();
 				reader.onload = function(event) {
-					heroImageInput.value = event.target.result;
+					var img = new Image();
+					img.onload = function() {
+						var canvas = document.createElement('canvas');
+						var MAX_WIDTH = 800;
+						var MAX_HEIGHT = 800;
+						var width = img.width;
+						var height = img.height;
+
+						if (width > height) {
+							if (width > MAX_WIDTH) {
+								height *= MAX_WIDTH / width;
+								width = MAX_WIDTH;
+							}
+						} else {
+							if (height > MAX_HEIGHT) {
+								width *= MAX_HEIGHT / height;
+								height = MAX_HEIGHT;
+							}
+						}
+						canvas.width = width;
+						canvas.height = height;
+						var ctx = canvas.getContext('2d');
+						ctx.drawImage(img, 0, 0, width, height);
+						
+						// Compress to high quality JPEG to save massive space
+						var dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+						heroImageInput.value = dataUrl;
+						alert("تم ضغط الصورة بنجاح وجاهزة للحفظ!");
+					};
+					img.src = event.target.result;
 				};
 				reader.readAsDataURL(file);
 			});
