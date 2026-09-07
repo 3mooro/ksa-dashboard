@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { Users, MousePointerClick, Globe, BookOpen } from 'lucide-astro';
+import { Users, MousePointerClick, Globe, BookOpen, GraduationCap, MessagesSquare, Presentation } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 const session = Astro.cookies.get('admin_session');
@@ -13,6 +13,9 @@ let studentsCount = 0;
 let whatsappClicks = 0;
 let globalVisits = 0;
 let totalArticleViews = 0;
+let coursesCount = 0;
+let leadsCount = 0;
+let teachersCount = 0;
 
 try {
 	const db = env.DB;
@@ -27,9 +30,16 @@ try {
 		}
 
 		const viewsResult = await db.prepare("SELECT SUM(views) as total_views FROM blog").first();
-		if (viewsResult && viewsResult.total_views) {
-			totalArticleViews = viewsResult.total_views as number;
-		}
+		if (viewsResult && viewsResult.total_views) totalArticleViews = viewsResult.total_views as number;
+		
+		const coursesResult = await db.prepare("SELECT COUNT(*) as count FROM courses").first();
+		if (coursesResult) coursesCount = coursesResult.count as number;
+		
+		const leadsResult = await db.prepare("SELECT COUNT(*) as count FROM leads").first();
+		if (leadsResult) leadsCount = leadsResult.count as number;
+		
+		const teachersResult = await db.prepare("SELECT COUNT(*) as count FROM teachers").first();
+		if (teachersResult) teachersCount = teachersResult.count as number;
 	}
 } catch (e) {
 	console.error("Database connection error:", e);
@@ -37,17 +47,20 @@ try {
 ---
 <DashboardLayout title="نظرة عامة">
 	<div class="mb-8">
-		<h2 class="text-3xl font-black text-slate-800">إحصائيات الأكاديمية</h2>
-		<p class="text-slate-500 font-bold mt-1">مرحباً بك، إليك ملخص لأداء المنصة اليوم (أرقام حقيقية ومباشرة).</p>
+		<h2 class="text-3xl font-black text-slate-800">إحصائيات المنصة</h2>
+		<p class="text-slate-500 font-bold mt-1">إليك ملخص شامل لأداء منصتك، وتحديثات حية ومباشرة للأرقام.</p>
 	</div>
 
 	<!-- بطاقات الإحصائيات -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 		{[
 			{ title: "الطلاب المسجلين", value: studentsCount, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-			{ title: "نقرات الواتساب", value: whatsappClicks, icon: MousePointerClick, color: "text-green-600", bg: "bg-green-50" },
 			{ title: "زيارات الموقع", value: globalVisits, icon: Globe, color: "text-orange-600", bg: "bg-orange-50" },
-			{ title: "مشاهدات المقالات", value: totalArticleViews, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50" }
+			{ title: "مشاهدات المقالات", value: totalArticleViews, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50" },
+			{ title: "نقرات الواتساب", value: whatsappClicks, icon: MousePointerClick, color: "text-green-600", bg: "bg-green-50" },
+			{ title: "طلبات التسجيل (Leads)", value: leadsCount, icon: MessagesSquare, color: "text-pink-600", bg: "bg-pink-50" },
+			{ title: "إجمالي الكورسات", value: coursesCount, icon: Presentation, color: "text-indigo-600", bg: "bg-indigo-50" },
+			{ title: "المعلمين", value: teachersCount, icon: GraduationCap, color: "text-teal-600", bg: "bg-teal-50" },
 		].map(stat => (
 			<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
 				<div class="flex justify-between items-start mb-4">
