@@ -14,17 +14,17 @@ export const GET: APIRoute = async ({ request }) => {
     let query = '';
     
     if (range === 'hour') {
-      // By hour for today
-      query = "SELECT strftime('%H:00', visited_at) as label, COUNT(*) as count FROM visits_log WHERE date(visited_at) = date('now') GROUP BY label ORDER BY label ASC";
+      // By hour for today (Adjusted to KSA/Egypt Time UTC+3)
+      query = "SELECT strftime('%H:00', datetime(visited_at, '+3 hours')) as label, COUNT(*) as count FROM visits_log WHERE date(datetime(visited_at, '+3 hours')) = date(datetime('now', '+3 hours')) GROUP BY label ORDER BY label ASC";
     } else if (range === 'week') {
       // By day for last 7 days
-      query = "SELECT date(visited_at) as label, COUNT(*) as count FROM visits_log WHERE visited_at >= date('now', '-7 days') GROUP BY label ORDER BY label ASC";
+      query = "SELECT date(datetime(visited_at, '+3 hours')) as label, COUNT(*) as count FROM visits_log WHERE datetime(visited_at, '+3 hours') >= date(datetime('now', '+3 hours'), '-7 days') GROUP BY label ORDER BY label ASC";
     } else if (range === 'month') {
       // By month for this year
-      query = "SELECT strftime('%Y-%m', visited_at) as label, COUNT(*) as count FROM visits_log WHERE strftime('%Y', visited_at) = strftime('%Y', 'now') GROUP BY label ORDER BY label ASC";
+      query = "SELECT strftime('%Y-%m', datetime(visited_at, '+3 hours')) as label, COUNT(*) as count FROM visits_log WHERE strftime('%Y', datetime(visited_at, '+3 hours')) = strftime('%Y', datetime('now', '+3 hours')) GROUP BY label ORDER BY label ASC";
     } else if (range === 'year') {
       // By year
-      query = "SELECT strftime('%Y', visited_at) as label, COUNT(*) as count FROM visits_log GROUP BY label ORDER BY label ASC";
+      query = "SELECT strftime('%Y', datetime(visited_at, '+3 hours')) as label, COUNT(*) as count FROM visits_log GROUP BY label ORDER BY label ASC";
     }
 
     const { results } = await db.prepare(query).all();
