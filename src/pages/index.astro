@@ -76,13 +76,140 @@ try {
 		))}
 	</div>
 
+	<!-- Chart Section -->
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-10">
+		<div class="flex justify-between items-center mb-6">
+			<h2 class="text-xl font-black text-slate-800">رسم بياني لزيارات الموقع</h2>
+			<div class="flex gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
+				<button data-range="hour" class="chart-tab px-4 py-2 text-sm font-bold rounded-lg transition-colors text-slate-500 hover:text-slate-800">اليوم (بالساعات)</button>
+				<button data-range="week" class="chart-tab px-4 py-2 text-sm font-bold rounded-lg transition-colors bg-white shadow-sm text-blue-600 border border-slate-100">هذا الأسبوع (بالأيام)</button>
+				<button data-range="month" class="chart-tab px-4 py-2 text-sm font-bold rounded-lg transition-colors text-slate-500 hover:text-slate-800">هذا العام (بالشهور)</button>
+				<button data-range="year" class="chart-tab px-4 py-2 text-sm font-bold rounded-lg transition-colors text-slate-500 hover:text-slate-800">كل الوقت (بالسنين)</button>
+			</div>
+		</div>
+		<div class="relative h-80 w-full">
+			<canvas id="visitsChart"></canvas>
+		</div>
+	</div>
+
 	<!-- جدول أحدث الطلبات -->
 	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
 		<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
 			<h2 class="text-lg font-black text-slate-800">إدارة الإحصائيات</h2>
 		</div>
 		<div class="p-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center">
-			<p>يتم تحديث هذه الأرقام تلقائياً مع كل زيارة أو نقرة في الموقع الرئيسي.</p>
+			<p>يتم تحديث هذه الأرقام والرسومات البيانية تلقائياً مع كل زيارة في الموقع الرئيسي.</p>
 		</div>
 	</div>
+
 </DashboardLayout>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script is:inline>
+	document.addEventListener('DOMContentLoaded', () => {
+		const ctx = document.getElementById('visitsChart').getContext('2d');
+		let myChart = null;
+
+		const loadChartData = async (range) => {
+			try {
+				const response = await fetch(`/api/chart-data?range=${range}`);
+				const json = await response.json();
+				const data = json.data || [];
+				
+				const labels = data.map(d => d.label);
+				const counts = data.map(d => d.count);
+
+				if (myChart) {
+					myChart.destroy();
+				}
+
+				myChart = new Chart(ctx, {
+					type: 'line',
+					data: {
+						labels: labels,
+						datasets: [{
+							label: 'عدد الزيارات',
+							data: counts,
+							borderColor: '#2563eb', // blue-600
+							backgroundColor: 'rgba(37, 99, 235, 0.1)',
+							borderWidth: 3,
+							pointBackgroundColor: '#ffffff',
+							pointBorderColor: '#2563eb',
+							pointBorderWidth: 2,
+							pointRadius: 4,
+							pointHoverRadius: 6,
+							fill: true,
+							tension: 0.4
+						}]
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						plugins: {
+							legend: {
+								display: false
+							},
+							tooltip: {
+								titleFont: { family: 'Tajawal', size: 14 },
+								bodyFont: { family: 'Tajawal', size: 14, weight: 'bold' },
+								padding: 12,
+								backgroundColor: 'rgba(15, 23, 42, 0.9)',
+								cornerRadius: 8,
+								displayColors: false
+							}
+						},
+						scales: {
+							y: {
+								beginAtZero: true,
+								grid: {
+									color: '#f1f5f9',
+									drawBorder: false
+								},
+								ticks: {
+									font: { family: 'Tajawal', weight: 'bold' },
+									color: '#64748b'
+								}
+							},
+							x: {
+								grid: {
+									display: false,
+									drawBorder: false
+								},
+								ticks: {
+									font: { family: 'Tajawal', weight: 'bold' },
+									color: '#64748b'
+								}
+							}
+						}
+					}
+				});
+			} catch (err) {
+				console.error("Error loading chart data:", err);
+			}
+		};
+
+		// Initial load
+		loadChartData('week');
+
+		// Handle tabs
+		const tabs = document.querySelectorAll('.chart-tab');
+		tabs.forEach(tab => {
+			tab.addEventListener('click', (e) => {
+				// Reset styles
+				tabs.forEach(t => {
+					t.classList.remove('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
+					t.classList.add('text-slate-500');
+				});
+				
+				// Active style
+				e.target.classList.remove('text-slate-500');
+				e.target.classList.add('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
+				
+				// Load new data
+				const range = e.target.getAttribute('data-range');
+				loadChartData(range);
+			});
+		});
+	});
+</script>
