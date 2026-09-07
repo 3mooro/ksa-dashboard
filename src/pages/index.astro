@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { Users, MousePointerClick, BookOpen, TrendingUp } from 'lucide-astro';
+import { Users, MousePointerClick, Globe, BookOpen } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 const session = Astro.cookies.get('admin_session');
@@ -10,12 +10,26 @@ if (!session) {
 }
 
 let studentsCount = 0;
+let whatsappClicks = 0;
+let globalVisits = 0;
+let totalArticleViews = 0;
 
 try {
 	const db = env.DB;
-	const result = await db.prepare("SELECT COUNT(*) as count FROM student_accounts").first();
-	if (result) {
-		studentsCount = result.count as number;
+	if (db) {
+		const result = await db.prepare("SELECT COUNT(*) as count FROM student_accounts").first();
+		if (result) studentsCount = result.count as number;
+
+		const statsResult = await db.prepare("SELECT total_visits, whatsapp_clicks FROM site_stats WHERE id = 'global'").first();
+		if (statsResult) {
+			globalVisits = statsResult.total_visits as number;
+			whatsappClicks = statsResult.whatsapp_clicks as number;
+		}
+
+		const viewsResult = await db.prepare("SELECT SUM(views) as total_views FROM blog").first();
+		if (viewsResult && viewsResult.total_views) {
+			totalArticleViews = viewsResult.total_views as number;
+		}
 	}
 } catch (e) {
 	console.error("Database connection error:", e);
@@ -24,23 +38,22 @@ try {
 <DashboardLayout title="نظرة عامة">
 	<div class="mb-8">
 		<h2 class="text-3xl font-black text-slate-800">إحصائيات الأكاديمية</h2>
-		<p class="text-slate-500 font-bold mt-1">مرحباً بك، إليك ملخص لأداء المنصة اليوم.</p>
+		<p class="text-slate-500 font-bold mt-1">مرحباً بك، إليك ملخص لأداء المنصة اليوم (أرقام حقيقية ومباشرة).</p>
 	</div>
 
 	<!-- بطاقات الإحصائيات -->
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 		{[
-			{ title: "الطلاب المسجلين", value: studentsCount, icon: Users, color: "text-blue-600", bg: "bg-blue-50", trend: "+12%" },
-			{ title: "نقرات الواتساب", value: "142", icon: MousePointerClick, color: "text-green-600", bg: "bg-green-50", trend: "+5%" },
-			{ title: "إجمالي الكورسات", value: "12", icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", trend: "ثابت" },
-			{ title: "النمو الشهري", value: "89%", icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", trend: "+2%" }
+			{ title: "الطلاب المسجلين", value: studentsCount, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+			{ title: "نقرات الواتساب", value: whatsappClicks, icon: MousePointerClick, color: "text-green-600", bg: "bg-green-50" },
+			{ title: "زيارات الموقع", value: globalVisits, icon: Globe, color: "text-orange-600", bg: "bg-orange-50" },
+			{ title: "مشاهدات المقالات", value: totalArticleViews, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50" }
 		].map(stat => (
 			<div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow group">
 				<div class="flex justify-between items-start mb-4">
 					<div class={`p-4 rounded-2xl ${stat.bg} ${stat.color} group-hover:scale-110 transition-transform`}>
 						<stat.icon class="w-6 h-6" />
 					</div>
-					<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">{stat.trend}</span>
 				</div>
 				<div>
 					<h3 class="text-3xl font-black text-slate-800 mb-1">{stat.value}</h3>
@@ -53,13 +66,10 @@ try {
 	<!-- جدول أحدث الطلبات -->
 	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
 		<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-			<h2 class="text-lg font-black text-slate-800">أحدث طلبات التسجيل (Leads)</h2>
-			<button class="text-sm font-bold text-blue-600 hover:underline">عرض الكل</button>
+			<h2 class="text-lg font-black text-slate-800">إدارة الإحصائيات</h2>
 		</div>
 		<div class="p-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center">
-			<Users class="w-12 h-12 mb-4 opacity-20" />
-			<p>لا توجد طلبات جديدة حتى الآن.</p>
-			<p class="text-sm font-normal mt-1">سيتم عرض الطلاب هنا بمجرد قيامهم بالتسجيل.</p>
+			<p>يتم تحديث هذه الأرقام تلقائياً مع كل زيارة أو نقرة في الموقع الرئيسي.</p>
 		</div>
 	</div>
 </DashboardLayout>
