@@ -38,7 +38,7 @@ Format the output strictly in beautiful Markdown.
     while (retries > 0) {
       try {
         response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
+            model: 'gemini-flash-latest',
             contents: dataPrompt,
         });
         break;
