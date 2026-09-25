@@ -33,10 +33,27 @@ Format the output strictly in beautiful Markdown.
     `;
 
     const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: dataPrompt,
-    });
+    let response;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: dataPrompt,
+        });
+        break;
+      } catch (err: any) {
+        if (err.status === 503 || err.message?.includes('high demand') || err.message?.includes('503')) {
+          retries--;
+          if (retries === 0) throw err;
+          await new Promise(res => setTimeout(res, 2500));
+        } else {
+          throw err;
+        }
+      }
+    }
+    
+    if (!response) throw new Error("Failed to generate content");
 
     return new Response(JSON.stringify({ report: response.text }), {
       status: 200,
