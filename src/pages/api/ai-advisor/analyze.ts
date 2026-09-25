@@ -34,7 +34,7 @@ Format the output strictly in beautiful Markdown.
 
     const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-pro',
         contents: dataPrompt,
     });
 
