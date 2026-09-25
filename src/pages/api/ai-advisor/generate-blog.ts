@@ -27,7 +27,7 @@ TAGS: ["tag1", "tag2", "tag3"]
 
     const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-        model: 'gemini-pro-latest',
+        model: 'gemini-3.8-flash',
         contents: dataPrompt,
     });
     
