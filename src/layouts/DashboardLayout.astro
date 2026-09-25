@@ -1,5 +1,5 @@
 ---
-import { LayoutDashboard, Users, BookOpen, LogOut, Bell, Search, Settings, Menu, MessageSquare } from 'lucide-astro';
+import { LayoutDashboard, Users, BookOpen, LogOut, Bell, Search, Settings, Menu, MessageSquare, Sparkles } from 'lucide-astro';
 import '../styles/global.css';
 
 interface Props {
@@ -48,10 +48,16 @@ const { title } = Astro.props;
 				<MessageSquare class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>مراقبة المحادثات</span>
 			</a>
 			<a href="/requests" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
-				<Bell class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>طلبات التسجيل</span>
+				<Bell class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>الاشتراكات الجديدة</span>
+			</a>
+			<a href="/leads" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500 text-green-400/80">
+				<MessageSquare class="w-5 h-5 group-hover:text-green-400 transition-colors" /> <span>إدارة العملاء (CRM)</span>
 			</a>
 			<a href="/teachers" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
 				<Users class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إدارة المعلمين</span>
+			</a>
+			<a href="/ai-advisor" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-indigo-400 text-indigo-400/80">
+				<Sparkles class="w-5 h-5 group-hover:text-indigo-400 transition-colors" /> <span>المستشار الذكي (AI)</span>
 			</a>
 			<a href="/settings" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 hover:text-white transition-all font-bold group border-r-4 border-transparent hover:border-slate-500">
 				<Settings class="w-5 h-5 group-hover:text-blue-400 transition-colors" /> <span>إعدادات الموقع</span>

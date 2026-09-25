@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.10",
+    "@google/genai": "^2.24.0",
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^6.1.7",
     "lucide-astro": "^0.556.0",
+    "marked": "^18.0.14",
     "tailwindcss": "^4.2.2"
   }
 }

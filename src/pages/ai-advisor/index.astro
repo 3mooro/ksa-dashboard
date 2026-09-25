@@ -1,0 +1,120 @@
+---
+export const prerender = false;
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { Sparkles, BrainCircuit, Activity, BookOpen, UserCheck } from 'lucide-astro';
+
+const title = "المستشار الذكي (Gemini AI)";
+---
+
+<DashboardLayout title={title}>
+  <div class="mb-10">
+    <div class="flex items-center gap-4 mb-4">
+      <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/30">
+        <Sparkles class="w-8 h-8" />
+      </div>
+      <div>
+        <h1 class="text-3xl font-black text-slate-800">مستشار الأكاديمية الذكي</h1>
+        <p class="text-slate-500 font-bold mt-1">مدعوم بـ Google Gemini لتحليل بياناتك واقتراح أفضل الاستراتيجيات.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- AI Controller Panel -->
+    <div class="lg:col-span-1 space-y-6">
+      <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-32 h-32 bg-purple-50 rounded-full opacity-50 blur-2xl pointer-events-none"></div>
+        <h2 class="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">
+          <BrainCircuit class="w-6 h-6 text-purple-600" />
+          لوحة التحكم الذكية
+        </h2>
+        
+        <p class="text-sm text-slate-500 font-bold mb-6 leading-relaxed">
+          سيقوم الذكاء الاصطناعي بقراءة إحصائيات منصتك الحالية (الزيارات، الطلاب، المعلمين، المقالات) ثم يقدم لك تقريراً تفصيلياً يشمل:
+        </p>
+        
+        <ul class="space-y-4 mb-8">
+          <li class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0"><Activity class="w-4 h-4" /></div>
+            <div><span class="font-bold text-slate-700 text-sm block">تحليل الأداء</span><span class="text-xs text-slate-400">تقييم شامل لحالة المنصة</span></div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0"><BookOpen class="w-4 h-4" /></div>
+            <div><span class="font-bold text-slate-700 text-sm block">أفكار مقالات SEO</span><span class="text-xs text-slate-400">عناوين مقترحة للتصدر في جوجل</span></div>
+          </li>
+          <li class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0"><UserCheck class="w-4 h-4" /></div>
+            <div><span class="font-bold text-slate-700 text-sm block">نصائح بيعية</span><span class="text-xs text-slate-400">استراتيجيات لزيادة المبيعات</span></div>
+          </li>
+        </ul>
+
+        <button id="analyze-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-600/20 transition-all hover:scale-[1.02] flex items-center justify-center gap-2">
+          <Sparkles class="w-5 h-5" />
+          ابدأ تحليل المنصة الآن
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Output Panel -->
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm min-h-[500px] flex flex-col relative">
+        <div id="loading-state" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-3xl">
+          <div class="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p class="font-black text-indigo-900 animate-pulse">جاري تحليل البيانات واستشارة Gemini...</p>
+        </div>
+
+        <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center">
+          <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+            <BrainCircuit class="w-12 h-12 text-slate-300" />
+          </div>
+          <h3 class="text-2xl font-black text-slate-300 mb-2">التقرير فارغ</h3>
+          <p class="text-slate-400 font-bold max-w-sm">اضغط على زر بدء التحليل ليقوم الذكاء الاصطناعي بقراءة بياناتك وتقديم تقريره.</p>
+        </div>
+
+        <div id="report-content" class="hidden flex-1 prose prose-slate max-w-none font-cairo">
+          <!-- Content injected here via JS -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+</DashboardLayout>
+
+<script>
+  import { marked } from 'marked';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('analyze-btn');
+    const loading = document.getElementById('loading-state');
+    const emptyState = document.getElementById('empty-state');
+    const reportContent = document.getElementById('report-content');
+
+    btn?.addEventListener('click', async () => {
+      loading?.classList.remove('hidden');
+      emptyState?.classList.add('hidden');
+      reportContent?.classList.add('hidden');
+      btn.disabled = true;
+
+      try {
+        const response = await fetch('/api/ai-advisor/analyze', { method: 'POST' });
+        const data = await response.json();
+
+        if (response.ok) {
+          const html = marked.parse(data.report);
+          if (reportContent) reportContent.innerHTML = html;
+          reportContent?.classList.remove('hidden');
+        } else {
+          alert('حدث خطأ: ' + data.error);
+          emptyState?.classList.remove('hidden');
+        }
+      } catch (e) {
+        alert('فشل الاتصال بالخادم.');
+        emptyState?.classList.remove('hidden');
+      } finally {
+        loading?.classList.add('hidden');
+        btn.disabled = false;
+      }
+    });
+  });
+</script>

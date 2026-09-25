@@ -156,7 +156,13 @@ if (Astro.request.method === "POST") {
 			</div>
 
 			<div>
-				<label class="block text-sm font-black text-slate-700 mb-2">محتوى المقال (Rich Text Editor)</label>
+				<label class="block text-sm font-black text-slate-700 mb-2 flex justify-between items-center">
+					<span>محتوى المقال (Rich Text Editor)</span>
+					<button type="button" id="ai-generate-btn" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 font-bold transition-colors flex items-center gap-1">
+						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.35 2.22 2.3 2.8 2.02 1.06-0.5 1.22-3.17 2.2-3.17 1.67 0 3-1.36 3-3.03 0-1.66-1.33-3.02-3-3.02z"/><path d="m13 15 2 2"/><path d="m16 12 2 2"/></svg>
+						توليد بواسطة AI
+					</button>
+				</label>
 				<input type="hidden" name="body" id="body-input" value={post.body} />
 				<div class="border border-slate-200 rounded-2xl overflow-hidden bg-white">
 					<div id="editor-container" class="bg-white" style="height: 400px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
@@ -270,6 +276,48 @@ if (Astro.request.method === "POST") {
 					img.src = event.target.result;
 				};
 				reader.readAsDataURL(file);
+			});
+		}
+
+		// AI Generate Handler
+		var aiBtn = document.getElementById('ai-generate-btn');
+		if (aiBtn) {
+			aiBtn.addEventListener('click', async function() {
+				var titleInput = document.querySelector('input[name="title"]');
+				var title = titleInput ? titleInput.value : '';
+				if (!title) {
+					alert("الرجاء كتابة عنوان المقال أولاً ليتمكن الذكاء الاصطناعي من كتابته.");
+					return;
+				}
+				
+				var originalText = aiBtn.innerHTML;
+				aiBtn.innerHTML = "جاري الكتابة...";
+				aiBtn.disabled = true;
+
+				try {
+					var response = await fetch('/api/ai-advisor/generate-blog', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ title: title })
+					});
+					var data = await response.json();
+					if (response.ok) {
+						quill.clipboard.dangerouslyPasteHTML(data.content);
+						
+						// Also try to fill in tags if empty
+						var tagsInput = document.querySelector('input[name="tags"]');
+						if (tagsInput && (!tagsInput.value || tagsInput.value === '[]')) {
+							tagsInput.value = JSON.stringify(data.tags || []);
+						}
+					} else {
+						alert("خطأ: " + data.error);
+					}
+				} catch (e) {
+					alert("فشل الاتصال.");
+				} finally {
+					aiBtn.innerHTML = originalText;
+					aiBtn.disabled = false;
+				}
 			});
 		}
 	});
