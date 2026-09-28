@@ -109,10 +109,11 @@ try {
 					</div>
 
 					<div class="flex flex-col gap-2 mt-auto">
-						<form method="POST" action="/api/teachers/add-session">
+						<form method="POST" action="/api/teachers/add-session" class="flex gap-2">
 							<input type="hidden" name="id" value={teacher.id} />
-							<button type="submit" class="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold transition-all hover:scale-[1.02]">
-								<Plus class="w-4 h-4" /> تسجيل حصة يدوية (+1)
+							<input type="number" name="price" value={teacher.session_price} required class="w-20 sm:w-24 bg-slate-50 border border-slate-200 rounded-xl px-2 text-center font-bold focus:ring-2 focus:ring-blue-500 outline-none" title="تعديل السعر قبل الإضافة إذا لزم الأمر" />
+							<button type="submit" class="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold transition-all hover:scale-[1.02]">
+								<Plus class="w-4 h-4" /> حصة يدوية
 							</button>
 						</form>
 						<form method="POST" action="/api/teachers/pay" onsubmit="return confirm('هل أنت متأكد من دفع المستحقات وتصفير العداد؟');">
