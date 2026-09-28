@@ -177,7 +177,12 @@ if (!student) {
                       {weeklySchedules.filter(ws => ws.teacher_id === at.teacher_id).map(ws => (
                         <div class="flex justify-between items-center bg-white p-2 rounded-lg text-sm border border-indigo-100">
                           <span class="font-bold text-indigo-700">
-                            يوم {['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][ws.day_of_week]} - الساعة {ws.time_of_day}
+                            يوم {['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][ws.day_of_week]} - الساعة {new Intl.DateTimeFormat('ar-EG', {
+                              timeZone: 'Africa/Cairo',
+                              hour: 'numeric',
+                              minute: 'numeric',
+                              hour12: true
+                            }).format(new Date(`2000-01-01T${ws.time_of_day}+03:00`))}
                           </span>
                           <form method="POST" action="/api/students/delete-weekly-schedule" class="inline">
                             <input type="hidden" name="id" value={ws.id} />

@@ -44,10 +44,13 @@ try {
 
 		// Today's scheduled sessions (both specific dates and weekly recurring)
 		try {
-			const today = new Date().toISOString().split('T')[0];
-			// 0 = Sunday, 1 = Monday, ... SQLite strftime('%w', 'now') returns '0'-'6'
-			// BUT 'now' uses UTC. So we calculate it in JS:
-			const currentDayOfWeek = new Date().getDay(); 
+			// Calculate KSA current date and day of week
+			const ksaDateStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+			const [month, day, year] = ksaDateStr.split('/');
+			const todayKSA = `${year}-${month}-${day}`;
+			
+			// Get day of week in KSA (0-6)
+			const ksaDayOfWeek = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' })).getDay();
 
 			const scheduleRes = await db.prepare(`
 				SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
@@ -66,9 +69,11 @@ try {
 				WHERE ws.day_of_week = ?
 				
 				ORDER BY session_datetime ASC
-			`).bind(today, today, currentDayOfWeek).all();
+			`).bind(todayKSA, todayKSA, ksaDayOfWeek).all();
 			todaySessions = scheduleRes.results || [];
-		} catch(e) {}
+		} catch(e) {
+			console.error("Schedule error:", e);
+		}
 	}
 } catch (e) {
 	console.error("Database connection error:", e);
@@ -148,7 +153,12 @@ try {
 						{todaySessions.map(session => (
 							<tr class="hover:bg-slate-50 transition-colors">
 								<td class="p-4 font-bold text-slate-600" dir="ltr">
-									{new Date(session.session_datetime).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})}
+									{new Intl.DateTimeFormat('ar-EG', {
+										timeZone: 'Africa/Cairo',
+										hour: 'numeric',
+										minute: 'numeric',
+										hour12: true
+									}).format(new Date(session.session_datetime + '+03:00'))}
 								</td>
 								<td class="p-4 font-black text-slate-800">{session.student_name}</td>
 								<td class="p-4 font-bold text-slate-600">{session.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1">{session.subject}</span></td>
