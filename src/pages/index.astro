@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { Users, MousePointerClick, Globe, BookOpen, GraduationCap, MessagesSquare, Presentation } from 'lucide-astro';
+import { Users, MousePointerClick, Globe, BookOpen, GraduationCap, MessagesSquare, Presentation, CalendarDays } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 const session = Astro.cookies.get('admin_session');
@@ -16,6 +16,7 @@ let totalArticleViews = 0;
 let coursesCount = 0;
 let leadsCount = 0;
 let teachersCount = 0;
+let todaySessions: any[] = [];
 
 try {
 	const db = env.DB;
@@ -40,6 +41,21 @@ try {
 		
 		const teachersResult = await db.prepare("SELECT COUNT(*) as count FROM teachers").first();
 		if (teachersResult) teachersCount = teachersResult.count as number;
+
+		// Today's scheduled sessions
+		try {
+			const today = new Date().toISOString().split('T')[0];
+			const scheduleRes = await db.prepare(`
+				SELECT ss.*, s.name as student_name, t.name as teacher_name, t.subject 
+				FROM session_schedule ss
+				JOIN students s ON ss.student_id = s.id
+				JOIN teachers t ON ss.teacher_id = t.id
+				WHERE date(ss.session_datetime) = date('now') OR date(ss.session_datetime) = ? 
+				AND ss.status = 'scheduled'
+				ORDER BY ss.session_datetime ASC
+			`).bind(today).all();
+			todaySessions = scheduleRes.results || [];
+		} catch(e) {}
 	}
 } catch (e) {
 	console.error("Database connection error:", e);
@@ -92,14 +108,53 @@ try {
 		</div>
 	</div>
 
-	<!-- جدول أحدث الطلبات -->
+	<!-- جدول مواعيد اليوم -->
 	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
 		<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-			<h2 class="text-lg font-black text-slate-800">إدارة الإحصائيات</h2>
+			<h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+				<CalendarDays class="w-5 h-5 text-blue-600" /> حصص ومواعيد اليوم
+			</h2>
 		</div>
-		<div class="p-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center">
-			<p>يتم تحديث هذه الأرقام والرسومات البيانية تلقائياً مع كل زيارة في الموقع الرئيسي.</p>
-		</div>
+		
+		{todaySessions.length === 0 ? (
+			<div class="p-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center">
+				<p>لا يوجد حصص مجدولة لهذا اليوم.</p>
+			</div>
+		) : (
+			<div class="overflow-x-auto">
+				<table class="w-full text-right border-collapse">
+					<thead>
+						<tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+							<th class="p-4">الوقت</th>
+							<th class="p-4">الطالب</th>
+							<th class="p-4">المعلم (المادة)</th>
+							<th class="p-4">الإجراء</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y text-sm">
+						{todaySessions.map(session => (
+							<tr class="hover:bg-slate-50 transition-colors">
+								<td class="p-4 font-bold text-slate-600" dir="ltr">
+									{new Date(session.session_datetime).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})}
+								</td>
+								<td class="p-4 font-black text-slate-800">{session.student_name}</td>
+								<td class="p-4 font-bold text-slate-600">{session.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1">{session.subject}</span></td>
+								<td class="p-4">
+									<form method="POST" action="/api/students/log-session" class="inline">
+										<input type="hidden" name="schedule_id" value={session.id} />
+										<input type="hidden" name="student_id" value={session.student_id} />
+										<input type="hidden" name="teacher_id" value={session.teacher_id} />
+										<button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">
+											تسجيل حضور
+										</button>
+									</form>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		)}
 	</div>
 
 </DashboardLayout>
