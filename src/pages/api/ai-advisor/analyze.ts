@@ -27,7 +27,7 @@ Please provide a highly professional, encouraging, and structured report IN ARAB
 Your report should include:
 1. **تحليل الأداء (Performance Analysis):** Analyze the conversion rates (e.g., Visits vs WhatsApp Clicks, Visits vs Leads).
 2. **نصائح بيعية وتنظيمية (Sales & Organizational Tips):** Give 2-3 concrete tips on how to improve these numbers based on the data.
-3. **أفكار مقالات (Content/SEO Ideas):** Suggest 3 highly optimized blog post titles related to Saudi education (Qiyas, Tahsili, School subjects) that can drive more traffic.
+3. **أفكار مقالات (Content/SEO Ideas):** Suggest 3 highly optimized blog post titles related to Saudi education (Qiyas, Tahsili, School subjects). You MUST wrap EACH title exactly in these tags: [TITLE] عنوان المقال [/TITLE]
 
 Format the output strictly in beautiful Markdown.
     `;

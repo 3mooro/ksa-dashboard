@@ -302,13 +302,36 @@ if (Astro.request.method === "POST") {
 					});
 					var data = await response.json();
 					if (response.ok) {
+						// 1. Fill Content
 						quill.clipboard.dangerouslyPasteHTML(data.content);
 						
-						// Also try to fill in tags if empty
+						// 2. Fill Tags
 						var tagsInput = document.querySelector('input[name="tags"]');
-						if (tagsInput && (!tagsInput.value || tagsInput.value === '[]')) {
+						if (tagsInput) {
 							tagsInput.value = JSON.stringify(data.tags || []);
 						}
+
+						// 3. Fill Slug
+						var slugInput = document.querySelector('input[name="slug"]');
+						if (slugInput && !slugInput.value) {
+							slugInput.value = data.slug;
+						}
+
+						// 4. Generate & Fill Image
+						var heroInput = document.querySelector('input[name="heroImage"]');
+						if (heroInput && data.imagePrompt) {
+							// Using Pollinations.ai which is a free image gen API with no key required
+							const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}?width=800&height=400&nologo=true`;
+							heroInput.value = imageUrl;
+						}
+
+						// 5. Fill Alt Text & Extras
+						var altInput = document.querySelector('input[name="imageAlt"]');
+						if (altInput && !altInput.value) altInput.value = title;
+						
+						var timeInput = document.querySelector('input[name="readingTime"]');
+						if (timeInput && !timeInput.value) timeInput.value = "5 دقائق";
+
 					} else {
 						alert("خطأ: " + data.error);
 					}
@@ -319,6 +342,20 @@ if (Astro.request.method === "POST") {
 					aiBtn.disabled = false;
 				}
 			});
+		}
+
+		// Auto-trigger AI if title is passed in URL
+		var urlParams = new URLSearchParams(window.location.search);
+		var aiTitle = urlParams.get('title');
+		if (aiTitle && aiBtn) {
+			var titleInput = document.querySelector('input[name="title"]');
+			if (titleInput && !titleInput.value) {
+				titleInput.value = aiTitle;
+				// Wait a moment for Quill to initialize, then trigger click
+				setTimeout(() => {
+					aiBtn.click();
+				}, 500);
+			}
 		}
 	});
 </script>

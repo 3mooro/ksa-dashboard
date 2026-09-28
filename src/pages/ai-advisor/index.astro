@@ -101,7 +101,13 @@ const title = "المستشار الذكي (Gemini AI)";
         const data = await response.json();
 
         if (response.ok) {
-          const html = marked.parse(data.report);
+          let rawReport = data.report;
+          // Transform [TITLE] tags into magical buttons
+          rawReport = rawReport.replace(/\[TITLE\](.*?)\[\/TITLE\]/g, (match, titleText) => {
+            return `**${titleText.trim()}** <a href="/blog/add?title=${encodeURIComponent(titleText.trim())}" class="mx-2 inline-flex items-center gap-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-black no-underline hover:scale-105 transition-transform shadow-md">✨ اكتب المقال تلقائياً</a>`;
+          });
+
+          const html = marked.parse(rawReport);
           if (reportContent) reportContent.innerHTML = html;
           reportContent?.classList.remove('hidden');
         } else {

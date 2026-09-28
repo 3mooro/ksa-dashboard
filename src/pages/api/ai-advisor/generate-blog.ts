@@ -15,14 +15,19 @@ Write a comprehensive, highly engaging, and SEO-optimized blog post in Arabic ab
 "${title}"
 
 Requirements:
-1. Write 4-5 well-structured paragraphs.
+1. Write 4-5 well-structured paragraphs in Arabic.
 2. Use markdown headings (H2, H3).
 3. Include bullet points.
 4. Keep the tone encouraging and professional.
 5. At the end, include a call-to-action to join KSA Academy courses.
 
-ALSO, provide a list of 3-5 tags relevant to this topic at the very end in this exact JSON array format:
-TAGS: ["tag1", "tag2", "tag3"]
+You MUST return the output strictly as a valid JSON object with the following keys, and NO OTHER TEXT OR MARKDOWN OUTSIDE THE JSON:
+{
+  "content": "The full markdown article in Arabic here...",
+  "tags": ["tag1", "tag2", "tag3"],
+  "slug": "english-url-slug-for-the-title",
+  "imagePrompt": "A highly detailed English prompt to generate an AI image for this article. No text in the image."
+}
     `;
 
     const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
@@ -49,22 +54,18 @@ TAGS: ["tag1", "tag2", "tag3"]
     if (!response) throw new Error("Failed to generate content");
     
     let text = response.text || "";
-    let tags = [];
+    // Clean up potential markdown JSON block
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    // Extract tags
-    const tagsMatch = text.match(/TAGS:\s*(\[.*?\])/s);
-    if (tagsMatch) {
-      try {
-        tags = JSON.parse(tagsMatch[1]);
-        text = text.replace(tagsMatch[0], '').trim();
-      } catch (e) {
-        console.error("Failed to parse tags", e);
-      }
-    }
+    const parsed = JSON.parse(text);
+    const htmlContent = marked.parse(parsed.content);
 
-    const htmlContent = marked.parse(text);
-
-    return new Response(JSON.stringify({ content: htmlContent, tags }), {
+    return new Response(JSON.stringify({ 
+      content: htmlContent, 
+      tags: parsed.tags || [],
+      slug: parsed.slug || 'article-' + Date.now(),
+      imagePrompt: parsed.imagePrompt || 'education abstract concept'
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
