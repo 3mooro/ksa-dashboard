@@ -138,11 +138,19 @@ if (!student) {
         ) : (
           <div class="space-y-4">
             {assignedTeachers.map((at: any) => (
-              <div class="flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 gap-4">
-                <div class="flex justify-between items-center">
+              <div class="flex flex-col bg-slate-50 p-4 rounded-2xl border border-slate-100 gap-4 relative">
+                <form method="POST" action="/api/students/unlink-teacher" class="absolute top-4 left-4" onsubmit="return confirm('هل أنت متأكد من فك ارتباط الطالب بهذا المعلم؟');">
+                  <input type="hidden" name="id" value={at.id} />
+                  <input type="hidden" name="student_id" value={student.id} />
+                  <button type="submit" class="text-red-400 hover:text-red-600 font-bold text-xs bg-white px-2 py-1 rounded shadow-sm border border-red-100 transition-colors">
+                    فك الربط
+                  </button>
+                </form>
+
+                <div class="flex justify-between items-center pr-12">
                   <div>
                     <div class="font-black text-slate-800 text-lg">{at.name}</div>
-                    <div class="text-sm font-bold text-slate-500">{at.subject} • سعر الحصة المخصص: <span class="text-indigo-600">{at.price || 'لم يحدد (افتراضي)'}</span></div>
+                    <div class="text-sm font-bold text-slate-500">{at.subject} • سعر الحصة المخصص: <span class="text-indigo-600">{at.price || 'لم يحدد (الأساسي للمعلم)'}</span></div>
                   </div>
                   <form method="POST" action="/api/students/log-session" class="flex gap-2">
                     <input type="hidden" name="student_id" value={student.id} />
