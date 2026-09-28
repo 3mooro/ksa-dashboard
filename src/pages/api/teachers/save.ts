@@ -13,8 +13,8 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   if (name && subject) {
     try {
       const db = env.DB;
-      await db.prepare('INSERT INTO teachers (name, subject, session_price, image, bio, experience) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(name, subject, Number(session_price) || 0, image || '', bio || '', experience || '').run();
+      await db.prepare('INSERT INTO teachers (name, subject, session_price, image, bio, experience, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(name, subject, Number(session_price) || 0, image || '', bio || '', experience || '', 'active').run();
       
       return redirect('/teachers?success=added');
     } catch (e: any) {

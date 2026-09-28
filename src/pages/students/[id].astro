@@ -7,6 +7,10 @@ import { User, Phone, GraduationCap, Link2, CreditCard, CalendarDays, CheckCircl
 const { id } = Astro.params;
 const db = env.DB;
 
+Astro.response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+Astro.response.headers.set('Pragma', 'no-cache');
+Astro.response.headers.set('Expires', '0');
+
 let student: any = null;
 let teachers: any[] = [];
 let assignedTeachers: any[] = [];
@@ -19,8 +23,7 @@ if (db && id) {
     const studentRes = await db.prepare('SELECT * FROM students WHERE id = ?').bind(id).first();
     student = studentRes;
 
-    const teachersRes = await db.prepare('SELECT id, name, subject FROM teachers').all();
-    teachers = teachersRes.results || [];
+    const teachersRes = await db.prepare("SELECT id, name, subject FROM teachers WHERE status = 'active'").all();
 
     const assignedRes = await db.prepare(`
       SELECT st.id, t.id as teacher_id, t.name, t.subject, tp.price_per_session as price
@@ -29,6 +32,11 @@ if (db && id) {
       LEFT JOIN teacher_prices tp ON tp.teacher_id = t.id AND tp.grade = ?
       WHERE st.student_id = ?
     `).bind(student.grade, id).all();
+    
+    assignedTeachers = assignedRes.results || [];
+    
+    const assignedTeacherIds = assignedTeachers.map(at => at.teacher_id);
+    teachers = (teachersRes.results || []).filter((t: any) => !assignedTeacherIds.includes(t.id));
     assignedTeachers = assignedRes.results || [];
 
     const sessionsRes = await db.prepare(`
