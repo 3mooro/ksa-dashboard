@@ -42,18 +42,31 @@ try {
 		const teachersResult = await db.prepare("SELECT COUNT(*) as count FROM teachers").first();
 		if (teachersResult) teachersCount = teachersResult.count as number;
 
-		// Today's scheduled sessions
+		// Today's scheduled sessions (both specific dates and weekly recurring)
 		try {
 			const today = new Date().toISOString().split('T')[0];
+			// 0 = Sunday, 1 = Monday, ... SQLite strftime('%w', 'now') returns '0'-'6'
+			// BUT 'now' uses UTC. So we calculate it in JS:
+			const currentDayOfWeek = new Date().getDay(); 
+
 			const scheduleRes = await db.prepare(`
-				SELECT ss.*, s.name as student_name, t.name as teacher_name, t.subject 
+				SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
 				FROM session_schedule ss
 				JOIN students s ON ss.student_id = s.id
 				JOIN teachers t ON ss.teacher_id = t.id
-				WHERE date(ss.session_datetime) = date('now') OR date(ss.session_datetime) = ? 
+				WHERE date(ss.session_datetime) = ? 
 				AND ss.status = 'scheduled'
-				ORDER BY ss.session_datetime ASC
-			`).bind(today).all();
+				
+				UNION ALL
+				
+				SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject
+				FROM weekly_schedule ws
+				JOIN students s ON ws.student_id = s.id
+				JOIN teachers t ON ws.teacher_id = t.id
+				WHERE ws.day_of_week = ?
+				
+				ORDER BY session_datetime ASC
+			`).bind(today, today, currentDayOfWeek).all();
 			todaySessions = scheduleRes.results || [];
 		} catch(e) {}
 	}

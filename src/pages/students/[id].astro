@@ -12,6 +12,7 @@ let teachers: any[] = [];
 let assignedTeachers: any[] = [];
 let sessions: any[] = [];
 let payments: any[] = [];
+let weeklySchedules: any[] = [];
 
 if (db && id) {
   try {
@@ -43,6 +44,14 @@ if (db && id) {
       SELECT * FROM payments_log WHERE student_id = ? ORDER BY payment_date DESC LIMIT 10
     `).bind(id).all();
     payments = paymentsRes.results || [];
+
+    const weeklyRes = await db.prepare(`
+      SELECT ws.*, t.name as teacher_name
+      FROM weekly_schedule ws
+      JOIN teachers t ON ws.teacher_id = t.id
+      WHERE ws.student_id = ?
+    `).bind(id).all();
+    weeklySchedules = weeklyRes.results || [];
   } catch (e) {
     console.error(e);
   }
@@ -145,15 +154,53 @@ if (!student) {
                 </div>
                 
                 <div class="border-t border-slate-200 pt-4 mt-2">
-                  <h4 class="text-sm font-bold text-slate-700 mb-2">أو جدولة حصة قادمة:</h4>
-                  <form method="POST" action="/api/students/schedule-session" class="flex gap-2 w-full">
+                  <h4 class="text-sm font-bold text-slate-700 mb-2">أو جدولة حصة مؤقتة بتاريخ محدد:</h4>
+                  <form method="POST" action="/api/students/schedule-session" class="flex gap-2 w-full mb-4">
                     <input type="hidden" name="student_id" value={student.id} />
                     <input type="hidden" name="teacher_id" value={at.teacher_id} />
                     <input type="datetime-local" name="session_datetime" required class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500" />
-                    <button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-xl transition-all">
-                      جدولة الحصة
-                    </button>
+                    <button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-xl transition-all">جدولة مخصصة</button>
                   </form>
+                  
+                  <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                    <h4 class="text-sm font-black text-indigo-800 mb-3">الجدول الأسبوعي الثابت (تتكرر كل أسبوع):</h4>
+                    
+                    <div class="space-y-2 mb-4">
+                      {weeklySchedules.filter(ws => ws.teacher_id === at.teacher_id).map(ws => (
+                        <div class="flex justify-between items-center bg-white p-2 rounded-lg text-sm border border-indigo-100">
+                          <span class="font-bold text-indigo-700">
+                            يوم {['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][ws.day_of_week]} - الساعة {ws.time_of_day}
+                          </span>
+                          <form method="POST" action="/api/students/delete-weekly-schedule" class="inline">
+                            <input type="hidden" name="id" value={ws.id} />
+                            <input type="hidden" name="student_id" value={student.id} />
+                            <button type="submit" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded font-bold text-xs">حذف</button>
+                          </form>
+                        </div>
+                      ))}
+                      {weeklySchedules.filter(ws => ws.teacher_id === at.teacher_id).length === 0 && (
+                        <p class="text-xs text-indigo-400 font-bold">لا يوجد جدول أسبوعي ثابت مسجل.</p>
+                      )}
+                    </div>
+
+                    <form method="POST" action="/api/students/add-weekly-schedule" class="flex flex-col sm:flex-row gap-2 w-full">
+                      <input type="hidden" name="student_id" value={student.id} />
+                      <input type="hidden" name="teacher_id" value={at.teacher_id} />
+                      <select name="day_of_week" required class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500">
+                        <option value="0">الأحد</option>
+                        <option value="1">الإثنين</option>
+                        <option value="2">الثلاثاء</option>
+                        <option value="3">الأربعاء</option>
+                        <option value="4">الخميس</option>
+                        <option value="5">الجمعة</option>
+                        <option value="6">السبت</option>
+                      </select>
+                      <input type="time" name="time_of_day" required class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-indigo-500" />
+                      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl transition-all sm:w-auto w-full shadow-md shadow-indigo-200">
+                        إضافة للجدول
+                      </button>
+                    </form>
+                  </div>
                 </div>
               </div>
             ))}
