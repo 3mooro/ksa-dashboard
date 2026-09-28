@@ -22,7 +22,7 @@ if (db && id) {
     teachers = teachersRes.results || [];
 
     const assignedRes = await db.prepare(`
-      SELECT st.id, t.id as teacher_id, t.name, t.subject, tp.price
+      SELECT st.id, t.id as teacher_id, t.name, t.subject, tp.price_per_session as price
       FROM student_teacher st
       JOIN teachers t ON st.teacher_id = t.id
       LEFT JOIN teacher_prices tp ON tp.teacher_id = t.id AND tp.grade = ?
