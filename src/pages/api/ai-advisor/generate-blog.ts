@@ -26,6 +26,8 @@ You MUST return the output strictly as a valid JSON object with the following ke
   "content": "The full markdown article in Arabic here...",
   "tags": ["tag1", "tag2", "tag3"],
   "slug": "english-url-slug-for-the-title",
+  "description": "A powerful Arabic SEO meta description for this article (max 150 chars).",
+  "imageAlt": "A descriptive Arabic alt text for the hero image of this article.",
   "imagePrompt": "A highly detailed English prompt to generate an AI image for this article. No text in the image."
 }
     `;
@@ -54,7 +56,6 @@ You MUST return the output strictly as a valid JSON object with the following ke
     if (!response) throw new Error("Failed to generate content");
     
     let text = response.text || "";
-    // Clean up potential markdown JSON block
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     const parsed = JSON.parse(text);
@@ -64,6 +65,8 @@ You MUST return the output strictly as a valid JSON object with the following ke
       content: htmlContent, 
       tags: parsed.tags || [],
       slug: parsed.slug || 'article-' + Date.now(),
+      description: parsed.description || '',
+      imageAlt: parsed.imageAlt || title,
       imagePrompt: parsed.imagePrompt || 'education abstract concept'
     }), {
       status: 200,
