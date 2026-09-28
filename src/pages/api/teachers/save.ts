@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
     try {
       const db = env.DB;
       await db.prepare('INSERT INTO teachers (name, subject, session_price, image, bio, experience) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(name, subject, session_price || 0, image || '', bio || '', experience || '').run();
+        .bind(name, subject, Number(session_price) || 0, image || '', bio || '', experience || '').run();
       
       return redirect('/teachers?success=added');
     } catch (e: any) {
