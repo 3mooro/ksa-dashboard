@@ -1,5 +1,3 @@
-export const prerender = false;
-
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 
@@ -19,10 +17,10 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         .bind(name, subject, session_price || 0, image || '', bio || '', experience || '').run();
       
       return redirect('/teachers?success=added');
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      return new Response("Error saving teacher: " + e.message, { status: 500 });
     }
   }
   
-  return redirect('/teachers?error=true');
+  return new Response("Missing name or subject", { status: 400 });
 };
