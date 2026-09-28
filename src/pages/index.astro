@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { Users, MousePointerClick, Globe, BookOpen, GraduationCap, MessagesSquare, Presentation, CalendarDays } from 'lucide-astro';
+import { Users, MousePointerClick, Globe, BookOpen, MessagesSquare, Presentation, GraduationCap, CalendarDays } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 const session = Astro.cookies.get('admin_session');
@@ -18,71 +18,77 @@ let leadsCount = 0;
 let teachersCount = 0;
 let todaySessions: any[] = [];
 
-try {
-	const db = env.DB;
-	if (db) {
-		const result = await db.prepare("SELECT COUNT(*) as count FROM student_accounts").first();
-		if (result) studentsCount = result.count as number;
-
-		const statsResult = await db.prepare("SELECT total_visits, whatsapp_clicks FROM site_stats WHERE id = 'global'").first();
-		if (statsResult) {
-			globalVisits = statsResult.total_visits as number;
-			whatsappClicks = statsResult.whatsapp_clicks as number;
-		}
-
-		const viewsResult = await db.prepare("SELECT SUM(views) as total_views FROM blog").first();
-		if (viewsResult && viewsResult.total_views) totalArticleViews = viewsResult.total_views as number;
-		
-		const coursesResult = await db.prepare("SELECT COUNT(*) as count FROM courses").first();
-		if (coursesResult) coursesCount = coursesResult.count as number;
-		
-		const leadsResult = await db.prepare("SELECT COUNT(*) as count FROM leads").first();
-		if (leadsResult) leadsCount = leadsResult.count as number;
-		
-		const teachersResult = await db.prepare("SELECT COUNT(*) as count FROM teachers").first();
-		if (teachersResult) teachersCount = teachersResult.count as number;
-
-		// Today's scheduled sessions (both specific dates and weekly recurring)
+const db = env.DB;
+if (db) {
+	const safeQuery = async (query: string, params: any[] = []) => {
 		try {
-			// Calculate KSA current date and day of week
-			const ksaDateStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-			const [month, day, year] = ksaDateStr.split('/');
-			const todayKSA = `${year}-${month}-${day}`;
-			
-			// Get day of week in KSA (0-6)
-			const ksaDayOfWeek = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' })).getDay();
-
-			const scheduleRes = await db.prepare(`
-				SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
-				FROM session_schedule ss
-				JOIN students s ON ss.student_id = s.id
-				JOIN teachers t ON ss.teacher_id = t.id
-				WHERE date(ss.session_datetime) = ? 
-				AND ss.status = 'scheduled'
-				
-				UNION ALL
-				
-				SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject
-				FROM weekly_schedule ws
-				JOIN students s ON ws.student_id = s.id
-				JOIN teachers t ON ws.teacher_id = t.id
-				WHERE ws.day_of_week = ?
-				
-				ORDER BY session_datetime ASC
-			`).bind(todayKSA, todayKSA, ksaDayOfWeek).all();
-			todaySessions = scheduleRes.results || [];
-		} catch(e) {
-			console.error("Schedule error:", e);
+			return await db.prepare(query).bind(...params).first();
+		} catch (e) {
+			return null;
 		}
+	};
+
+	const result = await safeQuery("SELECT COUNT(*) as count FROM student_accounts");
+	if (result) studentsCount += result.count as number;
+	
+	const manualStudents = await safeQuery("SELECT COUNT(*) as count FROM students");
+	if (manualStudents) studentsCount += manualStudents.count as number;
+
+	const statsResult = await safeQuery("SELECT total_visits, whatsapp_clicks FROM site_stats WHERE id = 'global'");
+	if (statsResult) {
+		globalVisits = statsResult.total_visits as number;
+		whatsappClicks = statsResult.whatsapp_clicks as number;
 	}
-} catch (e) {
-	console.error("Database connection error:", e);
+
+	const viewsResult = await safeQuery("SELECT SUM(views) as total_views FROM blog");
+	if (viewsResult && viewsResult.total_views) totalArticleViews = viewsResult.total_views as number;
+	
+	const coursesResult = await safeQuery("SELECT COUNT(*) as count FROM courses");
+	if (coursesResult) coursesCount = coursesResult.count as number;
+	
+	const leadsResult = await safeQuery("SELECT COUNT(*) as count FROM leads");
+	if (leadsResult) leadsCount = leadsResult.count as number;
+	
+	const teachersResult = await safeQuery("SELECT COUNT(*) as count FROM teachers");
+	if (teachersResult) teachersCount = teachersResult.count as number;
+
+	// Today's scheduled sessions (both specific dates and weekly recurring)
+	try {
+		const ksaDateStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+		const [month, day, year] = ksaDateStr.split('/');
+		const todayKSA = `${year}-${month}-${day}`;
+		
+		const ksaDayOfWeek = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' })).getDay();
+
+		const scheduleRes = await db.prepare(`
+			SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
+			FROM session_schedule ss
+			JOIN students s ON ss.student_id = s.id
+			JOIN teachers t ON ss.teacher_id = t.id
+			WHERE date(ss.session_datetime) = ? 
+			AND ss.status = 'scheduled'
+			
+			UNION ALL
+			
+			SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject
+			FROM weekly_schedule ws
+			JOIN students s ON ws.student_id = s.id
+			JOIN teachers t ON ws.teacher_id = t.id
+			WHERE ws.day_of_week = ?
+			
+			ORDER BY session_datetime ASC
+		`).bind(todayKSA, todayKSA, ksaDayOfWeek).all();
+		todaySessions = scheduleRes.results || [];
+	} catch(e) {
+		console.error("Schedule error:", e);
+	}
 }
 ---
+
 <DashboardLayout title="نظرة عامة">
 	<div class="mb-8">
-		<h2 class="text-3xl font-black text-slate-800">إحصائيات المنصة</h2>
-		<p class="text-slate-500 font-bold mt-1">إليك ملخص شامل لأداء منصتك، وتحديثات حية ومباشرة للأرقام.</p>
+		<h2 class="text-3xl font-black text-slate-800">إحصائيات الأكاديمية</h2>
+		<p class="text-slate-500 font-bold mt-1">مرحباً بك، إليك ملخص لأداء المنصة اليوم (أرقام حقيقية ومباشرة).</p>
 	</div>
 
 	<!-- بطاقات الإحصائيات -->
