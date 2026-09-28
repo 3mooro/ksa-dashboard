@@ -89,6 +89,13 @@ if (!student) {
           <div class="font-black text-blue-800">الرصيد الحالي</div>
           <span class={`font-black text-xl ${student.total_sessions > 0 ? 'text-green-600' : 'text-red-500'}`}>{student.total_sessions || 0} حصة</span>
         </div>
+        
+        <form method="POST" action="/api/students/delete" class="mt-4" onsubmit="return confirm('تحذير: سيتم حذف الطالب وجميع سجلات حضوره ومدفوعاته! هل أنت متأكد؟');">
+          <input type="hidden" name="id" value={student.id} />
+          <button type="submit" class="w-full flex items-center justify-center gap-2 bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold py-3 rounded-xl transition-all shadow-sm">
+            حذف الطالب نهائياً
+          </button>
+        </form>
       </div>
     </div>
 
