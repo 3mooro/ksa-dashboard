@@ -60,9 +60,33 @@ if (db) {
 		
 		const ksaDayOfWeek = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Riyadh' })).getDay();
 
+		// Clean up any orphaned schedules where student and teacher are unlinked
+		try {
+			await db.prepare(`
+				DELETE FROM weekly_schedule 
+				WHERE NOT EXISTS (
+					SELECT 1 FROM student_teacher st 
+					WHERE st.student_id = weekly_schedule.student_id 
+					AND st.teacher_id = weekly_schedule.teacher_id
+				)
+			`).run();
+
+			await db.prepare(`
+				DELETE FROM session_schedule 
+				WHERE NOT EXISTS (
+					SELECT 1 FROM student_teacher st 
+					WHERE st.student_id = session_schedule.student_id 
+					AND st.teacher_id = session_schedule.teacher_id
+				)
+			`).run();
+		} catch (cleanupErr) {
+			// ignore cleanup error
+		}
+
 		const scheduleRes = await db.prepare(`
 			SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
 			FROM session_schedule ss
+			JOIN student_teacher st ON ss.student_id = st.student_id AND ss.teacher_id = st.teacher_id
 			JOIN students s ON ss.student_id = s.id
 			JOIN teachers t ON ss.teacher_id = t.id
 			WHERE date(ss.session_datetime) = ? 
@@ -72,6 +96,7 @@ if (db) {
 			
 			SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject
 			FROM weekly_schedule ws
+			JOIN student_teacher st ON ws.student_id = st.student_id AND ws.teacher_id = st.teacher_id
 			JOIN students s ON ws.student_id = s.id
 			JOIN teachers t ON ws.teacher_id = t.id
 			WHERE ws.day_of_week = ?

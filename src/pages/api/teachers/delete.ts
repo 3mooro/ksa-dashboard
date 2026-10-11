@@ -10,12 +10,15 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   if (id) {
     try {
       const db = env.DB;
-      await db.prepare('DELETE FROM teachers WHERE id = ?')
-        .bind(id).run();
+      await db.prepare('DELETE FROM student_teacher WHERE teacher_id = ?').bind(id).run();
+      await db.prepare('DELETE FROM weekly_schedule WHERE teacher_id = ?').bind(id).run();
+      await db.prepare('DELETE FROM session_schedule WHERE teacher_id = ?').bind(id).run();
+      await db.prepare('DELETE FROM teacher_prices WHERE teacher_id = ?').bind(id).run();
+      await db.prepare('DELETE FROM teachers WHERE id = ?').bind(id).run();
       
       return redirect('/teachers?success=deleted');
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      return new Response("Error deleting teacher: " + e.message, { status: 500 });
     }
   }
   
