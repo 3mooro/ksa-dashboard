@@ -13,6 +13,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       await db.prepare('DELETE FROM student_teacher WHERE teacher_id = ?').bind(id).run();
       await db.prepare('DELETE FROM weekly_schedule WHERE teacher_id = ?').bind(id).run();
       await db.prepare('DELETE FROM session_schedule WHERE teacher_id = ?').bind(id).run();
+      try { await db.prepare('DELETE FROM trial_sessions WHERE teacher_id = ?').bind(id).run(); } catch(e) {}
       await db.prepare('DELETE FROM teacher_prices WHERE teacher_id = ?').bind(id).run();
       await db.prepare('DELETE FROM teachers WHERE id = ?').bind(id).run();
       

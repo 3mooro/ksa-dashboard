@@ -1,13 +1,18 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { Users, MousePointerClick, Globe, BookOpen, MessagesSquare, Presentation, GraduationCap, CalendarDays } from 'lucide-astro';
+import { 
+	Users, MousePointerClick, Globe, BookOpen, MessagesSquare, Presentation, 
+	GraduationCap, CalendarDays, Sparkles, Plus, CheckCircle2, Trash2, UserPlus, Clock, Phone
+} from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 const session = Astro.cookies.get('admin_session');
 if (!session) {
 	return Astro.redirect('/login');
 }
+
+const success = Astro.url.searchParams.get('success');
 
 let studentsCount = 0;
 let whatsappClicks = 0;
@@ -17,6 +22,8 @@ let coursesCount = 0;
 let leadsCount = 0;
 let teachersCount = 0;
 let todaySessions: any[] = [];
+let upcomingTrials: any[] = [];
+let teachersList: any[] = [];
 
 const db = env.DB;
 if (db) {
@@ -27,6 +34,23 @@ if (db) {
 			return null;
 		}
 	};
+
+	// Auto-create trial_sessions table if not exists
+	try {
+		await db.prepare(`
+			CREATE TABLE IF NOT EXISTS trial_sessions (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				student_name TEXT NOT NULL,
+				student_phone TEXT,
+				teacher_id INTEGER NOT NULL,
+				session_datetime DATETIME NOT NULL,
+				notes TEXT,
+				teacher_price REAL DEFAULT 0,
+				status TEXT DEFAULT 'scheduled',
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			)
+		`).run();
+	} catch (e) {}
 
 	const result = await safeQuery("SELECT COUNT(*) as count FROM student_accounts");
 	if (result) studentsCount += result.count as number;
@@ -52,7 +76,13 @@ if (db) {
 	const teachersResult = await safeQuery("SELECT COUNT(*) as count FROM teachers");
 	if (teachersResult) teachersCount = teachersResult.count as number;
 
-	// Today's scheduled sessions (both specific dates and weekly recurring)
+	// Fetch active teachers for the trial session modal dropdown
+	try {
+		const tListRes = await db.prepare("SELECT id, name, subject, session_price FROM teachers WHERE status = 'active' ORDER BY name ASC").all();
+		teachersList = tListRes.results || [];
+	} catch (e) {}
+
+	// Today's scheduled sessions (regular scheduled, weekly recurring, and trial sessions)
 	try {
 		const ksaDateStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 		const [month, day, year] = ksaDateStr.split('/');
@@ -84,7 +114,7 @@ if (db) {
 		}
 
 		const scheduleRes = await db.prepare(`
-			SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject 
+			SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject, 0 as is_trial, s.phone as student_phone, NULL as notes
 			FROM session_schedule ss
 			JOIN student_teacher st ON ss.student_id = st.student_id AND ss.teacher_id = st.teacher_id
 			JOIN students s ON ss.student_id = s.id
@@ -94,16 +124,39 @@ if (db) {
 			
 			UNION ALL
 			
-			SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject
+			SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject, 0 as is_trial, s.phone as student_phone, NULL as notes
 			FROM weekly_schedule ws
 			JOIN student_teacher st ON ws.student_id = st.student_id AND ws.teacher_id = st.teacher_id
 			JOIN students s ON ws.student_id = s.id
 			JOIN teachers t ON ws.teacher_id = t.id
 			WHERE ws.day_of_week = ?
 			
+			UNION ALL
+
+			SELECT ts.id, NULL as student_id, ts.teacher_id, ts.session_datetime, ts.status, ts.student_name, t.name as teacher_name, t.subject, 1 as is_trial, ts.student_phone, ts.notes
+			FROM trial_sessions ts
+			JOIN teachers t ON ts.teacher_id = t.id
+			WHERE date(ts.session_datetime) = ?
+			AND ts.status = 'scheduled'
+			
 			ORDER BY session_datetime ASC
-		`).bind(todayKSA, todayKSA, ksaDayOfWeek).all();
+		`).bind(todayKSA, todayKSA, ksaDayOfWeek, todayKSA).all();
 		todaySessions = scheduleRes.results || [];
+
+		// Fetch upcoming trial sessions scheduled for future dates
+		try {
+			const upRes = await db.prepare(`
+				SELECT ts.*, t.name as teacher_name, t.subject
+				FROM trial_sessions ts
+				JOIN teachers t ON ts.teacher_id = t.id
+				WHERE date(ts.session_datetime) > ?
+				AND ts.status = 'scheduled'
+				ORDER BY ts.session_datetime ASC
+				LIMIT 20
+			`).bind(todayKSA).all();
+			upcomingTrials = upRes.results || [];
+		} catch (e) {}
+
 	} catch(e) {
 		console.error("Schedule error:", e);
 	}
@@ -111,6 +164,38 @@ if (db) {
 ---
 
 <DashboardLayout title="نظرة عامة">
+	
+	<!-- Alert notifications -->
+	{success === 'trial_scheduled' && (
+		<div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl font-bold flex items-center justify-between shadow-sm animate-fade-in">
+			<div class="flex items-center gap-2">
+				<CheckCircle2 class="w-5 h-5 text-green-600" />
+				<span>تم تحديد موعد الحصة التجريبية بنجاح وإضافتها للجدول!</span>
+			</div>
+			<a href="/" class="text-xs text-green-700 hover:underline">إغلاق</a>
+		</div>
+	)}
+
+	{success === 'trial_completed' && (
+		<div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl font-bold flex items-center justify-between shadow-sm animate-fade-in">
+			<div class="flex items-center gap-2">
+				<CheckCircle2 class="w-5 h-5 text-green-600" />
+				<span>تم تسجيل إتمام الحصة التجريبية وإضافة مستحقات المعلم بنجاح!</span>
+			</div>
+			<a href="/" class="text-xs text-green-700 hover:underline">إغلاق</a>
+		</div>
+	)}
+
+	{success === 'trial_cancelled' && (
+		<div class="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl font-bold flex items-center justify-between shadow-sm animate-fade-in">
+			<div class="flex items-center gap-2">
+				<CheckCircle2 class="w-5 h-5 text-amber-600" />
+				<span>تم إلغاء الحصة التجريبية بنجاح.</span>
+			</div>
+			<a href="/" class="text-xs text-amber-700 hover:underline">إغلاق</a>
+		</div>
+	)}
+
 	<div class="mb-8">
 		<h2 class="text-3xl font-black text-slate-800">إحصائيات الأكاديمية</h2>
 		<p class="text-slate-500 font-bold mt-1">مرحباً بك، إليك ملخص لأداء المنصة اليوم (أرقام حقيقية ومباشرة).</p>
@@ -158,23 +243,37 @@ if (db) {
 	</div>
 
 	<!-- جدول مواعيد اليوم -->
-	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-		<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-10">
+		<div class="p-6 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/50 gap-4">
 			<h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
 				<CalendarDays class="w-5 h-5 text-blue-600" /> حصص ومواعيد اليوم
 			</h2>
+			<button 
+				type="button" 
+				onclick="document.getElementById('trial-session-modal').classList.remove('hidden')" 
+				class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2.5 rounded-xl font-black text-sm shadow-md shadow-orange-500/20 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+			>
+				<Sparkles class="w-4 h-4" /> تحديد حصة تجريبية
+			</button>
 		</div>
 		
 		{todaySessions.length === 0 ? (
 			<div class="p-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center">
 				<p>لا يوجد حصص مجدولة لهذا اليوم.</p>
+				<button 
+					type="button" 
+					onclick="document.getElementById('trial-session-modal').classList.remove('hidden')" 
+					class="mt-3 text-amber-600 hover:text-amber-700 text-sm font-black flex items-center gap-1"
+				>
+					<Sparkles class="w-4 h-4" /> تحديد حصة تجريبية الآن
+				</button>
 			</div>
 		) : (
 			<div class="overflow-x-auto">
 				<table class="w-full text-right border-collapse">
 					<thead>
 						<tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
-							<th class="p-4">الوقت</th>
+							<th class="p-4">الوقت (بتوقيت مصر)</th>
 							<th class="p-4">الطالب</th>
 							<th class="p-4">المعلم (المادة)</th>
 							<th class="p-4">الإجراء</th>
@@ -182,26 +281,92 @@ if (db) {
 					</thead>
 					<tbody class="divide-y text-sm">
 						{todaySessions.map(session => (
-							<tr class="hover:bg-slate-50 transition-colors">
+							<tr class={`transition-colors ${session.is_trial ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50'}`}>
 								<td class="p-4 font-bold text-slate-600" dir="ltr">
 									{new Intl.DateTimeFormat('ar-EG', {
 										timeZone: 'Africa/Cairo',
 										hour: 'numeric',
 										minute: 'numeric',
 										hour12: true
-									}).format(new Date(session.session_datetime + '+03:00'))}
+									}).format(new Date(session.session_datetime.includes('+') || session.session_datetime.includes('Z') ? session.session_datetime : session.session_datetime + '+03:00'))}
 								</td>
-								<td class="p-4 font-black text-slate-800">{session.student_name}</td>
-								<td class="p-4 font-bold text-slate-600">{session.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1">{session.subject}</span></td>
+								
 								<td class="p-4">
-									<form method="POST" action="/api/students/log-session" class="inline">
-										<input type="hidden" name="schedule_id" value={session.id} />
-										<input type="hidden" name="student_id" value={session.student_id} />
-										<input type="hidden" name="teacher_id" value={session.teacher_id} />
-										<button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg font-bold text-xs transition-colors">
-											تسجيل حضور
-										</button>
-									</form>
+									{session.is_trial ? (
+										<div>
+											<div class="flex items-center gap-2 flex-wrap">
+												<span class="font-black text-slate-800 text-base">{session.student_name}</span>
+												<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-black border border-amber-200 flex items-center gap-1">
+													<Sparkles class="w-3 h-3 text-amber-600 inline" /> حصة تجريبية
+												</span>
+											</div>
+											{session.student_phone && (
+												<div class="flex items-center gap-2 mt-1">
+													<span class="text-xs text-slate-500 font-bold" dir="ltr">{session.student_phone}</span>
+													<a 
+														href={`https://wa.me/${session.student_phone.replace(/[^0-9]/g, '')}`} 
+														target="_blank" 
+														class="text-green-600 hover:text-green-700 font-bold text-xs inline-flex items-center gap-0.5"
+														title="مراسلة عبر واتساب"
+													>
+														<Phone class="w-3 h-3" /> واتساب
+													</a>
+												</div>
+											)}
+											{session.notes && (
+												<span class="text-xs text-slate-500 block mt-1">{session.notes}</span>
+											)}
+										</div>
+									) : (
+										<div class="flex items-center gap-2">
+											<span class="font-black text-slate-800 text-base">{session.student_name}</span>
+											<a href={`/students/${session.student_id}`} class="text-blue-500 hover:text-blue-700 text-xs font-bold" title="عرض ملف الطالب">
+												(ملف الطالب)
+											</a>
+										</div>
+									)}
+								</td>
+
+								<td class="p-4 font-bold text-slate-600">
+									{session.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1 font-bold">{session.subject}</span>
+								</td>
+
+								<td class="p-4">
+									{session.is_trial ? (
+										<div class="flex items-center gap-2 flex-wrap">
+											<form method="POST" action="/api/trial-sessions/complete" class="inline" onsubmit="return confirm('هل تريد تأكيد إتمام الحصة التجريبية واحتساب مستحقات المعلم؟');">
+												<input type="hidden" name="id" value={session.id} />
+												<button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1 shadow-sm">
+													<CheckCircle2 class="w-3.5 h-3.5" /> إتمام الحصة
+												</button>
+											</form>
+
+											<button 
+												type="button" 
+												onclick={`openConvertModal(${session.id}, '${session.student_name.replace(/'/g, "\\'")}', '${(session.student_phone || '').replace(/'/g, "\\'")}')`}
+												class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
+												title="تسجيله كطالب رسمي في النظام"
+											>
+												<UserPlus class="w-3.5 h-3.5" /> تحويل لطالب رسمي
+											</button>
+											
+											<form method="POST" action="/api/trial-sessions/delete" class="inline" onsubmit="return confirm('هل أنت متأكد من إلغاء وحذف هذه الحصة التجريبية؟');">
+												<input type="hidden" name="id" value={session.id} />
+												<button type="submit" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-xl transition-colors" title="إلغاء الحصة">
+													<Trash2 class="w-4 h-4" />
+												</button>
+											</form>
+										</div>
+									) : (
+										<form method="POST" action="/api/students/log-session" class="inline">
+											<input type="hidden" name="schedule_id" value={session.id} />
+											<input type="hidden" name="student_id" value={session.student_id} />
+											<input type="hidden" name="teacher_id" value={session.teacher_id} />
+											<button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors">
+												تسجيل حضور
+											</button>
+										</form>
+									)}
 								</td>
 							</tr>
 						))}
@@ -211,114 +376,328 @@ if (db) {
 		)}
 	</div>
 
+	<!-- الحصص التجريبية القادمة (إن وجدت لأيام قادمة) -->
+	{upcomingTrials.length > 0 && (
+		<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-10">
+			<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-amber-50/30">
+				<h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+					<Sparkles class="w-5 h-5 text-amber-500" /> الحصص التجريبية القادمة للأيام القادمة ({upcomingTrials.length})
+				</h2>
+			</div>
+			
+			<div class="overflow-x-auto">
+				<table class="w-full text-right border-collapse">
+					<thead>
+						<tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+							<th class="p-4">الموعد (بتوقيت مصر)</th>
+							<th class="p-4">اسم الطالب</th>
+							<th class="p-4">المعلم (المادة)</th>
+							<th class="p-4">مستحقات المعلم</th>
+							<th class="p-4">الإجراء</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y text-sm">
+						{upcomingTrials.map(trial => (
+							<tr class="hover:bg-amber-50/30 transition-colors">
+								<td class="p-4 font-bold text-slate-600" dir="ltr">
+									{new Intl.DateTimeFormat('ar-EG', {
+										timeZone: 'Africa/Cairo',
+										year: 'numeric',
+										month: 'short',
+										day: 'numeric',
+										hour: 'numeric',
+										minute: 'numeric',
+										hour12: true
+									}).format(new Date(trial.session_datetime.includes('+') || trial.session_datetime.includes('Z') ? trial.session_datetime : trial.session_datetime + '+03:00'))}
+								</td>
+								
+								<td class="p-4">
+									<div class="font-black text-slate-800 text-base">{trial.student_name}</div>
+									{trial.student_phone && (
+										<div class="flex items-center gap-2 mt-0.5">
+											<span class="text-xs text-slate-500 font-bold" dir="ltr">{trial.student_phone}</span>
+											<a href={`https://wa.me/${trial.student_phone.replace(/[^0-9]/g, '')}`} target="_blank" class="text-green-600 text-xs font-bold">واتساب</a>
+										</div>
+									)}
+									{trial.notes && <span class="text-xs text-slate-500 block mt-1">{trial.notes}</span>}
+								</td>
+
+								<td class="p-4 font-bold text-slate-600">
+									{trial.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1 font-bold">{trial.subject}</span>
+								</td>
+
+								<td class="p-4 font-black text-slate-700">
+									{trial.teacher_price ? `${trial.teacher_price} ريال` : 'مجانية (0 ريال)'}
+								</td>
+
+								<td class="p-4">
+									<div class="flex items-center gap-2">
+										<button 
+											type="button" 
+											onclick={`openConvertModal(${trial.id}, '${trial.student_name.replace(/'/g, "\\'")}', '${(trial.student_phone || '').replace(/'/g, "\\'")}')`}
+											class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
+										>
+											<UserPlus class="w-3.5 h-3.5" /> تحويل لطالب
+										</button>
+										
+										<form method="POST" action="/api/trial-sessions/delete" class="inline" onsubmit="return confirm('هل تريد إلغاء هذه الحصة التجريبية؟');">
+											<input type="hidden" name="id" value={trial.id} />
+											<button type="submit" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-xl transition-colors" title="إلغاء">
+												<Trash2 class="w-4 h-4" />
+											</button>
+										</form>
+									</div>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	)}
+
+	<!-- Modal: تحديد حصة تجريبية -->
+	<div id="trial-session-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center flex p-4">
+		<div class="bg-white p-6 sm:p-8 rounded-3xl w-full max-w-lg shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto">
+			<button type="button" onclick="document.getElementById('trial-session-modal').classList.add('hidden')" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 cursor-pointer">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"></line><line x1="6" x2="18" y1="6" y2="18"></line></svg>
+			</button>
+
+			<div class="flex items-center gap-3 mb-6">
+				<div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
+					<Sparkles class="w-6 h-6" />
+				</div>
+				<div>
+					<h3 class="text-2xl font-black text-slate-800">تحديد حصة تجريبية</h3>
+					<p class="text-xs text-slate-500 font-bold mt-0.5">دون الحاجة لإنشاء طالب مسبقاً في النظام</p>
+				</div>
+			</div>
+			
+			<form method="POST" action="/api/trial-sessions/create" class="space-y-4">
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">اسم الطالب <span class="text-red-500">*</span></label>
+					<input type="text" name="student_name" required placeholder="مثال: عبد العزيز فهد" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">رقم الهاتف / الواتساب</label>
+					<input type="tel" name="student_phone" placeholder="05xxxxxxxx" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800 text-left" dir="ltr" />
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">المعلم والمادة <span class="text-red-500">*</span></label>
+					<select name="teacher_id" id="trial-teacher-select" required class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800">
+						<option value="">اختر المعلم...</option>
+						{teachersList.map((t: any) => (
+							<option value={t.id} data-price={t.session_price || 0}>{t.name} ({t.subject})</option>
+						))}
+					</select>
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">تاريخ ووقت الحصة (بتوقيت السعودية) <span class="text-red-500">*</span></label>
+					<input type="datetime-local" name="session_datetime" required class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800 text-left" dir="ltr" />
+					<span class="text-[11px] text-slate-400 font-bold block mt-1">سيتم عرض الموعد في الصفحة الرئيسية بتوقيت مصر تلقائياً.</span>
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">مستحقات المعلم عن الحصة (ريال)</label>
+					<input type="number" name="teacher_price" id="trial-teacher-price" value="0" min="0" step="any" required class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800 text-left" dir="ltr" />
+					<span class="text-[11px] text-slate-400 font-bold block mt-1">يُضاف لرصيد المعلم عند الضغط على "إتمام الحصة". يمكنك تغييره أو جعله 0 إذا كانت بدون أجر.</span>
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">المرحلة الدراسية / ملاحظات إضافية</label>
+					<input type="text" name="notes" placeholder="مثال: أول ثانوي - تجربة تأسيس قدرات" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+
+				<button type="submit" class="w-full mt-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-orange-500/25 cursor-pointer">
+					حفظ وتحديد الحصة التجريبية
+				</button>
+			</form>
+		</div>
+	</div>
+
+	<!-- Modal: تحويل لطالب رسمي -->
+	<div id="convert-trial-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center flex p-4">
+		<div class="bg-white p-6 sm:p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-slate-100">
+			<button type="button" onclick="document.getElementById('convert-trial-modal').classList.add('hidden')" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 cursor-pointer">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"></line><line x1="6" x2="18" y1="6" y2="18"></line></svg>
+			</button>
+
+			<div class="flex items-center gap-3 mb-6">
+				<div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
+					<UserPlus class="w-6 h-6" />
+				</div>
+				<div>
+					<h3 class="text-xl font-black text-slate-800">تحويل إلى طالب مسجل</h3>
+					<p class="text-xs text-slate-500 font-bold mt-0.5">سيتم إضافة الطالب رسمياً وربطه بالمعلم</p>
+				</div>
+			</div>
+			
+			<form method="POST" action="/api/trial-sessions/convert" class="space-y-4">
+				<input type="hidden" name="id" id="convert-trial-id" />
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">اسم الطالب</label>
+					<input type="text" id="convert-student-name" disabled class="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-2xl font-bold text-slate-600" />
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">الصف الدراسي <span class="text-red-500">*</span></label>
+					<input type="text" name="grade" required placeholder="مثال: أول ثانوي" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800" />
+				</div>
+
+				<div>
+					<label class="block text-sm font-bold text-slate-700 mb-1">رصيد الحصص المبدئي المشحون</label>
+					<input type="number" name="total_sessions" value="0" min="0" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-slate-800 text-left" dir="ltr" />
+					<span class="text-[11px] text-slate-400 font-bold block mt-1">يمكنك شحن رصيده الآن أو لاحقاً من كشف حسابه.</span>
+				</div>
+
+				<button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/25 cursor-pointer">
+					إتمام التسجيل وفتح ملف الطالب
+				</button>
+			</form>
+		</div>
+	</div>
+
 </DashboardLayout>
 
-<!-- Chart.js -->
+<!-- Chart.js and scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script is:inline>
+	// Open convert modal helper
+	window.openConvertModal = function(trialId, studentName, studentPhone) {
+		const modal = document.getElementById('convert-trial-modal');
+		const idInput = document.getElementById('convert-trial-id');
+		const nameInput = document.getElementById('convert-student-name');
+		if (modal && idInput && nameInput) {
+			idInput.value = trialId;
+			nameInput.value = studentName + (studentPhone ? ` (${studentPhone})` : '');
+			modal.classList.remove('hidden');
+		}
+	};
+
 	document.addEventListener('DOMContentLoaded', () => {
-		const ctx = document.getElementById('visitsChart').getContext('2d');
-		let myChart = null;
-
-		const loadChartData = async (range) => {
-			try {
-				const response = await fetch(`/api/chart-data?range=${range}`);
-				const json = await response.json();
-				const data = json.data || [];
-				
-				const labels = data.map(d => d.label);
-				const counts = data.map(d => d.count);
-
-				if (myChart) {
-					myChart.destroy();
+		// Auto-populate price when teacher is selected
+		const teacherSelect = document.getElementById('trial-teacher-select');
+		const priceInput = document.getElementById('trial-teacher-price');
+		if (teacherSelect && priceInput) {
+			teacherSelect.addEventListener('change', () => {
+				const selectedOption = teacherSelect.options[teacherSelect.selectedIndex];
+				const price = selectedOption ? selectedOption.getAttribute('data-price') : 0;
+				if (price !== null && price !== undefined) {
+					priceInput.value = price;
 				}
+			});
+		}
 
-				myChart = new Chart(ctx, {
-					type: 'line',
-					data: {
-						labels: labels,
-						datasets: [{
-							label: 'عدد الزيارات',
-							data: counts,
-							borderColor: '#2563eb', // blue-600
-							backgroundColor: 'rgba(37, 99, 235, 0.1)',
-							borderWidth: 3,
-							pointBackgroundColor: '#ffffff',
-							pointBorderColor: '#2563eb',
-							pointBorderWidth: 2,
-							pointRadius: 4,
-							pointHoverRadius: 6,
-							fill: true,
-							tension: 0.4
-						}]
-					},
-					options: {
-						responsive: true,
-						maintainAspectRatio: false,
-						plugins: {
-							legend: {
-								display: false
-							},
-							tooltip: {
-								titleFont: { family: 'Tajawal', size: 14 },
-								bodyFont: { family: 'Tajawal', size: 14, weight: 'bold' },
-								padding: 12,
-								backgroundColor: 'rgba(15, 23, 42, 0.9)',
-								cornerRadius: 8,
-								displayColors: false
-							}
+		// Visits Chart
+		const chartEl = document.getElementById('visitsChart');
+		if (chartEl) {
+			const ctx = chartEl.getContext('2d');
+			let myChart = null;
+
+			const loadChartData = async (range) => {
+				try {
+					const response = await fetch(`/api/chart-data?range=${range}`);
+					const json = await response.json();
+					const data = json.data || [];
+					
+					const labels = data.map(d => d.label);
+					const counts = data.map(d => d.count);
+
+					if (myChart) {
+						myChart.destroy();
+					}
+
+					myChart = new Chart(ctx, {
+						type: 'line',
+						data: {
+							labels: labels,
+							datasets: [{
+								label: 'عدد الزيارات',
+								data: counts,
+								borderColor: '#2563eb', // blue-600
+								backgroundColor: 'rgba(37, 99, 235, 0.1)',
+								borderWidth: 3,
+								pointBackgroundColor: '#ffffff',
+								pointBorderColor: '#2563eb',
+								pointBorderWidth: 2,
+								pointRadius: 4,
+								pointHoverRadius: 6,
+								fill: true,
+								tension: 0.4
+							}]
 						},
-						scales: {
-							y: {
-								beginAtZero: true,
-								grid: {
-									color: '#f1f5f9',
-									drawBorder: false
+						options: {
+							responsive: true,
+							maintainAspectRatio: false,
+							plugins: {
+								legend: {
+									display: false
 								},
-								ticks: {
-									font: { family: 'Tajawal', weight: 'bold' },
-									color: '#64748b'
+								tooltip: {
+									titleFont: { family: 'Tajawal', size: 14 },
+									bodyFont: { family: 'Tajawal', size: 14, weight: 'bold' },
+									padding: 12,
+									backgroundColor: 'rgba(15, 23, 42, 0.9)',
+									cornerRadius: 8,
+									displayColors: false
 								}
 							},
-							x: {
-								grid: {
-									display: false,
-									drawBorder: false
+							scales: {
+								y: {
+									beginAtZero: true,
+									grid: {
+										color: '#f1f5f9',
+										drawBorder: false
+									},
+									ticks: {
+										font: { family: 'Tajawal', weight: 'bold' },
+										color: '#64748b'
+									}
 								},
-								ticks: {
-									font: { family: 'Tajawal', weight: 'bold' },
-									color: '#64748b'
+								x: {
+									grid: {
+										display: false,
+										drawBorder: false
+									},
+									ticks: {
+										font: { family: 'Tajawal', weight: 'bold' },
+										color: '#64748b'
+									}
 								}
 							}
 						}
-					}
-				});
-			} catch (err) {
-				console.error("Error loading chart data:", err);
-			}
-		};
+					});
+				} catch (err) {
+					console.error("Error loading chart data:", err);
+				}
+			};
 
-		// Initial load
-		loadChartData('week');
+			// Initial load
+			loadChartData('week');
 
-		// Handle tabs
-		const tabs = document.querySelectorAll('.chart-tab');
-		tabs.forEach(tab => {
-			tab.addEventListener('click', (e) => {
-				// Reset styles
-				tabs.forEach(t => {
-					t.classList.remove('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
-					t.classList.add('text-slate-500');
+			// Handle tabs
+			const tabs = document.querySelectorAll('.chart-tab');
+			tabs.forEach(tab => {
+				tab.addEventListener('click', (e) => {
+					// Reset styles
+					tabs.forEach(t => {
+						t.classList.remove('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
+						t.classList.add('text-slate-500');
+					});
+					
+					// Active style
+					e.target.classList.remove('text-slate-500');
+					e.target.classList.add('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
+					
+					// Load new data
+					const range = e.target.getAttribute('data-range');
+					loadChartData(range);
 				});
-				
-				// Active style
-				e.target.classList.remove('text-slate-500');
-				e.target.classList.add('bg-white', 'shadow-sm', 'text-blue-600', 'border', 'border-slate-100');
-				
-				// Load new data
-				const range = e.target.getAttribute('data-range');
-				loadChartData(range);
 			});
-		});
+		}
 	});
 </script>
