@@ -51,10 +51,15 @@ if (db) {
               <Phone class="w-4 h-4" /> {student.phone || 'لا يوجد'}
             </div>
             
-            <div class="flex items-center justify-between mt-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <span class="text-xs font-bold text-slate-500">الرصيد المتبقي</span>
-              <span class={`font-black text-lg ${student.total_sessions > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {student.total_sessions || 0} حصص
+            <div class={`flex items-center justify-between mt-4 p-3 rounded-xl border ${student.total_sessions < 0 ? 'bg-red-50/60 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-slate-500">الرصيد المتبقي</span>
+                {student.total_sessions < 0 && (
+                  <span class="text-[11px] text-red-600 font-bold">دفع مؤخر</span>
+                )}
+              </div>
+              <span class={`font-black text-lg ${student.total_sessions > 0 ? 'text-green-600' : 'text-red-600'}`} dir="ltr">
+                {student.total_sessions ?? 0} {student.total_sessions < 0 ? 'حصة' : 'حصص'}
               </span>
             </div>
           </div>

@@ -13,10 +13,6 @@ export const POST: APIRoute = async ({ request, redirect }) => {
       
       const student = await db.prepare('SELECT grade, total_sessions FROM students WHERE id = ?').bind(student_id).first();
       if (!student) throw new Error("Student not found");
-      
-      if (student.total_sessions <= 0) {
-        return redirect(`/students/${student_id}?error=no_sessions`);
-      }
 
       let price = 0;
       const customPrice = await db.prepare('SELECT price_per_session FROM teacher_prices WHERE teacher_id = ? AND grade = ?').bind(teacher_id, student.grade).first();
@@ -43,6 +39,16 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         
       await db.prepare("INSERT INTO teacher_transactions (teacher_id, change_type, amount, note) VALUES (?, 'session', ?, ?)")
         .bind(teacher_id, price, `حصة للطالب #${student_id} بمبلغ ${price} ريال`).run();
+
+      const referer = request.headers.get('referer');
+      if (referer) {
+        try {
+          const url = new URL(referer);
+          if (url.pathname === '/') {
+            return redirect('/?success=session_logged');
+          }
+        } catch (e) {}
+      }
 
       return redirect(`/students/${student_id}?success=session_logged`);
     } catch (e: any) {

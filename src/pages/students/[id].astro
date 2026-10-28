@@ -94,9 +94,16 @@ if (!student) {
           <div class="flex gap-2 text-slate-600 font-bold"><Phone class="w-5 h-5"/> الهاتف</div>
           <span class="font-black text-slate-800" dir="ltr">{student.phone}</span>
         </div>
-        <div class="flex justify-between items-center bg-blue-50 p-4 rounded-xl border border-blue-100">
-          <div class="font-black text-blue-800">الرصيد الحالي</div>
-          <span class={`font-black text-xl ${student.total_sessions > 0 ? 'text-green-600' : 'text-red-500'}`}>{student.total_sessions || 0} حصة</span>
+        <div class={`flex justify-between items-center p-4 rounded-xl border ${student.total_sessions < 0 ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100'}`}>
+          <div class="flex flex-col">
+            <span class={`font-black ${student.total_sessions < 0 ? 'text-red-800' : 'text-blue-800'}`}>الرصيد الحالي</span>
+            {student.total_sessions < 0 && (
+              <span class="text-xs text-red-600 font-bold">مستحق الدفع (دفع مؤخر)</span>
+            )}
+          </div>
+          <span class={`font-black text-xl ${student.total_sessions > 0 ? 'text-green-600' : 'text-red-500'}`} dir="ltr">
+            {student.total_sessions ?? 0} حصة
+          </span>
         </div>
         
         <form method="POST" action="/api/students/delete" class="mt-4" onsubmit="return confirm('تحذير: سيتم حذف الطالب وجميع سجلات حضوره ومدفوعاته! هل أنت متأكد؟');">
@@ -176,7 +183,7 @@ if (!student) {
                 <form method="POST" action="/api/students/log-session" class="w-full mt-2">
                   <input type="hidden" name="student_id" value={student.id} />
                   <input type="hidden" name="teacher_id" value={at.teacher_id} />
-                  <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 shadow-md shadow-slate-200" disabled={student.total_sessions <= 0}>
+                  <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-slate-200 hover:scale-[1.01] active:scale-95">
                     تسجيل حضور فوري (-1 حصة)
                   </button>
                 </form>
