@@ -14,6 +14,27 @@ try {
 } catch (e) {
 	console.error("Database connection error:", e);
 }
+
+// نقرات الواتساب لكل مقال (من جدول whatsapp_clicks في الموقع)
+let waClicks = {};
+try {
+	const db = env.DB;
+	const wa = await db.prepare("SELECT LOWER(slug) AS s, COUNT(*) AS cnt FROM whatsapp_clicks GROUP BY LOWER(slug)").all();
+	for (const r of (wa.results || [])) {
+		waClicks[r.s] = r.cnt;
+	}
+} catch (e) {
+	// الجدول غير موجود بعد = لا توجد نقرات مسجلة حتى الآن
+}
+let topWaSlug = null;
+let topWaCount = 0;
+for (const p of posts) {
+	const c = waClicks[(p.slug || '').toLowerCase()] || 0;
+	if (c > topWaCount) {
+		topWaCount = c;
+		topWaSlug = (p.slug || '').toLowerCase();
+	}
+}
 ---
 
 <DashboardLayout title="إدارة المقالات">
@@ -37,13 +58,14 @@ try {
 						<th class="px-6 py-4">تاريخ النشر</th>
 						<th class="px-6 py-4">القراءة</th>
 						<th class="px-6 py-4">المشاهدات</th>
+						<th class="px-6 py-4">نقرات واتساب</th>
 						<th class="px-6 py-4 text-center">الإجراءات</th>
 					</tr>
 				</thead>
 				<tbody>
 					{posts.length === 0 ? (
 						<tr>
-							<td colspan="6" class="px-6 py-12 text-center text-slate-400 font-bold">
+							<td colspan="7" class="px-6 py-12 text-center text-slate-400 font-bold">
 								لا توجد مقالات مضافة حالياً.
 							</td>
 						</tr>
@@ -67,6 +89,15 @@ try {
 										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
 										{post.views || 0}
 									</span>
+								</td>
+								<td class="px-6 py-4">
+									<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1 w-max">
+										<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.073.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.273.248-.579.248-1.074.173-1.179-.074-.104-.273-.173-.644-.322m-6.29 8.153h-.001c-5.155 0-10.236-2.083-13.943-5.747C.646 13.535-1.421 6.543 1.397 1.975 4.73-3.42 12.89-4.933 19.132-1.457c5.746 3.205 8.478 11.17 5.354 17.748-2.609 5.502-7.79 3.787-13.014 3.787M23.86 4.142A11.955 11.955 0 0 0 12.05 0C5.471 0 .104 5.346.104 11.9c0 2.098.55 4.163 1.597 5.976L.057 23.882l6.147-1.607a11.85 11.85 0 0 0 5.684 1.448h.005c6.58 0 11.946-5.345 11.946-11.9 0-3.178-1.238-6.166-3.485-8.414"/></svg>
+										{waClicks[(post.slug || '').toLowerCase()] || 0}
+									</span>
+									{topWaSlug && (post.slug || '').toLowerCase() === topWaSlug && (
+										<span class="block mt-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black whitespace-nowrap w-max">الأكثر جلباً للعملاء</span>
+									)}
 								</td>
 								<td class="px-6 py-4 flex items-center justify-center gap-3">
 									<a href={`https://ksaacademy.online/blog/${post.slug}`} target="_blank" class="text-green-500 hover:text-green-700 bg-green-50 hover:bg-green-100 p-2 rounded-lg transition-colors" title="عرض حي">
