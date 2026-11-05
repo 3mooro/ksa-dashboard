@@ -69,6 +69,8 @@ if (db && id) {
 if (!student) {
   return Astro.redirect('/students');
 }
+
+const updated = Astro.url.searchParams.get('success') === 'updated';
 ---
 
 <DashboardLayout title={`ملف الطالب - ${student.name}`}>
@@ -76,6 +78,12 @@ if (!student) {
     <a href="/students" class="text-slate-500 hover:text-slate-800 font-bold bg-slate-100 p-2 rounded-xl">عودة</a>
     <h1 class="text-3xl font-black text-slate-800">ملف الطالب</h1>
   </div>
+
+  {updated && (
+    <div class="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-2xl font-bold shadow-sm">
+      تم تحديث بيانات الطالب بنجاح.
+    </div>
+  )}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Student Info -->
@@ -106,6 +114,10 @@ if (!student) {
           </span>
         </div>
         
+        <button type="button" onclick="document.getElementById('edit-student-modal').classList.remove('hidden')" class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-sm mt-4">
+          تعديل بيانات الطالب
+        </button>
+
         <form method="POST" action="/api/students/delete" class="mt-4" onsubmit="return confirm('تحذير: سيتم حذف الطالب وجميع سجلات حضوره ومدفوعاته! هل أنت متأكد؟');">
           <input type="hidden" name="id" value={student.id} />
           <button type="submit" class="w-full flex items-center justify-center gap-2 bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold py-3 rounded-xl transition-all shadow-sm">
@@ -114,6 +126,35 @@ if (!student) {
         </form>
       </div>
     </div>
+
+  <!-- Edit Student Modal -->
+  <div id="edit-student-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center flex p-4">
+    <div class="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl relative border border-slate-100">
+      <button type="button" onclick="document.getElementById('edit-student-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"></line><line x1="6" x2="18" y1="6" y2="18"></line></svg>
+      </button>
+      <h3 class="text-2xl font-black mb-6 text-slate-800">تعديل بيانات الطالب</h3>
+
+      <form method="POST" action="/api/students/update-info" class="space-y-4">
+        <input type="hidden" name="id" value={student.id} />
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">اسم الطالب</label>
+          <input type="text" name="name" required value={student.name} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">الصف الدراسي</label>
+          <input type="text" name="grade" required value={student.grade} placeholder="مثال: أول متوسط / خامس ابتدائي" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold" />
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-2">رقم هاتف الطالب أو ولي الأمر</label>
+          <input type="text" name="phone" required value={student.phone} class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left" dir="ltr" />
+        </div>
+        <button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/30">
+          حفظ التعديلات
+        </button>
+      </form>
+    </div>
+  </div>
 
     <div class="col-span-1 lg:col-span-2 space-y-6">
       

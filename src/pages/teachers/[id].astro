@@ -71,6 +71,12 @@ const weeklyRows = weeklySchedule.map((ws: any) => {
   return { ...ws, cairoDay, cairoDayName: DAY_NAMES[cairoDay], cairoMinutes: hh * 60 + mm, cairoTime: cairoTimeFmt.format(date) };
 }).sort((a: any, b: any) => a.cairoDay - b.cairoDay || a.cairoMinutes - b.cairoMinutes);
 
+// بداية الأسبوع يوم السبت، وحصص كل يوم تُجمع في خانة واحدة
+const WEEK_ORDER = [6, 0, 1, 2, 3, 4, 5];
+const weeklyByDay = WEEK_ORDER
+  .map(d => ({ day: d, dayName: DAY_NAMES[d], sessions: weeklyRows.filter((r: any) => r.cairoDay === d) }))
+  .filter(g => g.sessions.length > 0);
+
 const nowTs = Date.now();
 const upcomingRows = upcomingSessions.map((ss: any) => {
   const raw = String(ss.session_datetime || '').replace(' ', 'T');
@@ -110,7 +116,7 @@ const upcomingRows = upcomingSessions.map((ss: any) => {
 
       <div class="p-6 border-b border-slate-100">
         <h4 class="text-base font-black text-slate-700 mb-3">الجدول الأسبوعي الثابت</h4>
-        {weeklyRows.length === 0 ? (
+        {weeklyByDay.length === 0 ? (
           <p class="text-slate-400 text-sm font-bold">لا يوجد جدول أسبوعي ثابت مسجل لهذا المعلم.</p>
         ) : (
           <div class="overflow-x-auto">
@@ -118,16 +124,23 @@ const upcomingRows = upcomingSessions.map((ss: any) => {
               <thead>
                 <tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
                   <th class="p-3">اليوم</th>
-                  <th class="p-3">الطالب</th>
-                  <th class="p-3">الموعد (بتوقيت مصر)</th>
+                  <th class="p-3">الحصص (الطالب — الموعد بتوقيت مصر)</th>
                 </tr>
               </thead>
               <tbody class="divide-y text-sm">
-                {weeklyRows.map((ws: any) => (
+                {weeklyByDay.map((g: any) => (
                   <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-3 font-black text-indigo-700">{ws.cairoDayName}</td>
-                    <td class="p-3 font-bold text-slate-700">{ws.student_name}</td>
-                    <td class="p-3 font-bold text-slate-600">{ws.cairoTime}</td>
+                    <td class="p-3 font-black text-indigo-700 align-top whitespace-nowrap">{g.dayName}</td>
+                    <td class="p-3">
+                      <div class="space-y-2">
+                        {g.sessions.map((ws: any) => (
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-slate-700">{ws.student_name}</span>
+                            <span class="font-bold text-slate-500 text-xs bg-slate-100 px-2 py-0.5 rounded-full">{ws.cairoTime}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

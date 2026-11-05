@@ -22,6 +22,7 @@ let coursesCount = 0;
 let leadsCount = 0;
 let teachersCount = 0;
 let todaySessions: any[] = [];
+let tomorrowSessions: any[] = [];
 let upcomingTrials: any[] = [];
 let teachersList: any[] = [];
 
@@ -142,6 +143,44 @@ if (db) {
 			ORDER BY session_datetime ASC
 		`).bind(todayKSA, todayKSA, ksaDayOfWeek, todayKSA).all();
 		todaySessions = scheduleRes.results || [];
+
+		// Tomorrow's scheduled sessions (same sources, next day — display only)
+		try {
+			const tmrDate = new Date(todayKSA + 'T12:00:00Z');
+			tmrDate.setUTCDate(tmrDate.getUTCDate() + 1);
+			const tomorrowKSA = tmrDate.toISOString().slice(0, 10);
+			const tomorrowDow = (ksaDayOfWeek + 1) % 7;
+
+			const tmrRes = await db.prepare(`
+				SELECT ss.id, ss.student_id, ss.teacher_id, ss.session_datetime, ss.status, s.name as student_name, t.name as teacher_name, t.subject, 0 as is_trial, s.phone as student_phone, NULL as notes
+				FROM session_schedule ss
+				JOIN student_teacher st ON ss.student_id = st.student_id AND ss.teacher_id = st.teacher_id
+				JOIN students s ON ss.student_id = s.id
+				JOIN teachers t ON ss.teacher_id = t.id
+				WHERE date(ss.session_datetime) = ?
+				AND ss.status = 'scheduled'
+
+				UNION ALL
+
+				SELECT NULL as id, ws.student_id, ws.teacher_id, ? || 'T' || ws.time_of_day as session_datetime, 'scheduled' as status, s.name as student_name, t.name as teacher_name, t.subject, 0 as is_trial, s.phone as student_phone, NULL as notes
+				FROM weekly_schedule ws
+				JOIN student_teacher st ON ws.student_id = st.student_id AND ws.teacher_id = st.teacher_id
+				JOIN students s ON ws.student_id = s.id
+				JOIN teachers t ON ws.teacher_id = t.id
+				WHERE ws.day_of_week = ?
+
+				UNION ALL
+
+				SELECT ts.id, NULL as student_id, ts.teacher_id, ts.session_datetime, ts.status, ts.student_name, t.name as teacher_name, t.subject, 1 as is_trial, ts.student_phone, ts.notes
+				FROM trial_sessions ts
+				JOIN teachers t ON ts.teacher_id = t.id
+				WHERE date(ts.session_datetime) = ?
+				AND ts.status = 'scheduled'
+
+				ORDER BY session_datetime ASC
+			`).bind(tomorrowKSA, tomorrowKSA, tomorrowDow, tomorrowKSA).all();
+			tomorrowSessions = tmrRes.results || [];
+		} catch (e) {}
 
 		// Fetch upcoming trial sessions scheduled for future dates
 		try {
@@ -377,6 +416,77 @@ if (db) {
 											</button>
 										</form>
 									)}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		)}
+	</div>
+
+	<!-- جدول مواعيد الغد (عرض فقط، بدون تسجيل حصة) -->
+	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-10">
+		<div class="p-6 border-b border-slate-100 bg-slate-50/50">
+			<h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+				<CalendarDays class="w-5 h-5 text-indigo-600" /> حصص ومواعيد الغد
+			</h2>
+		</div>
+
+		{tomorrowSessions.length === 0 ? (
+			<div class="p-12 text-center text-slate-400 font-bold">
+				<p>لا يوجد حصص مجدولة لغداً.</p>
+			</div>
+		) : (
+			<div class="overflow-x-auto">
+				<table class="w-full text-right border-collapse">
+					<thead>
+						<tr class="bg-muted/50 text-muted-foreground border-b text-sm font-bold">
+							<th class="p-4">الوقت (بتوقيت مصر)</th>
+							<th class="p-4">الطالب</th>
+							<th class="p-4">المعلم (المادة)</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y text-sm">
+						{tomorrowSessions.map(session => (
+							<tr class={`transition-colors ${session.is_trial ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50'}`}>
+								<td class="p-4 font-bold text-slate-600" dir="ltr">
+									{new Intl.DateTimeFormat('ar-EG', {
+										timeZone: 'Africa/Cairo',
+										hour: 'numeric',
+										minute: 'numeric',
+										hour12: true
+									}).format(new Date(session.session_datetime.includes('+') || session.session_datetime.includes('Z') ? session.session_datetime : session.session_datetime + '+03:00'))}
+								</td>
+
+								<td class="p-4">
+									{session.is_trial ? (
+										<div>
+											<div class="flex items-center gap-2 flex-wrap">
+												<span class="font-black text-slate-800 text-base">{session.student_name}</span>
+												<span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-black border border-amber-200 flex items-center gap-1">
+													<Sparkles class="w-3 h-3 text-amber-600 inline" /> حصة تجريبية
+												</span>
+											</div>
+											{session.student_phone && (
+												<span class="text-xs text-slate-500 font-bold block mt-1" dir="ltr">{session.student_phone}</span>
+											)}
+											{session.notes && (
+												<span class="text-xs text-slate-500 block mt-1">{session.notes}</span>
+											)}
+										</div>
+									) : (
+										<div class="flex items-center gap-2">
+											<span class="font-black text-slate-800 text-base">{session.student_name}</span>
+											<a href={`/students/${session.student_id}`} class="text-blue-500 hover:text-blue-700 text-xs font-bold" title="عرض ملف الطالب">
+												(ملف الطالب)
+											</a>
+										</div>
+									)}
+								</td>
+
+								<td class="p-4 font-bold text-slate-600">
+									{session.teacher_name} <span class="text-xs bg-slate-100 px-2 py-1 rounded-full ml-1 font-bold">{session.subject}</span>
 								</td>
 							</tr>
 						))}
