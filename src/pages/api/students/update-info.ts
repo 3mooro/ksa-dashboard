@@ -7,13 +7,15 @@ export const POST: APIRoute = async ({ request, redirect, cookies }) => {
   const id = Number(data.get('id'));
   const name = data.get('name');
   const grade = data.get('grade');
+  const gradeClass = data.get('grade_class');
   const phone = data.get('phone');
 
   if (id && name && grade && phone) {
     try {
       const db = env.DB;
-      await db.prepare('UPDATE students SET name = ?, grade = ?, phone = ? WHERE id = ?')
-        .bind(name, grade, phone, id).run();
+      try { await db.prepare('ALTER TABLE students ADD COLUMN grade_class TEXT').run(); } catch(e) {}
+      await db.prepare('UPDATE students SET name = ?, grade = ?, grade_class = ?, phone = ? WHERE id = ?')
+        .bind(name, grade, gradeClass || '', phone, id).run();
       return redirect(`/students/${id}?success=updated`);
     } catch (e) {
       console.error(e);
