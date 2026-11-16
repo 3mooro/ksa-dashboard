@@ -8,13 +8,27 @@ let teachers: any[] = [];
 
 if (db) {
   try {
-    const res = await db.prepare(`
-      SELECT cs.*, sa.name, sa.phone 
-      FROM course_subscriptions cs 
-      JOIN student_accounts sa ON cs.student_id = sa.id 
-      WHERE cs.status = 'pending' 
-      ORDER BY cs.created_at DESC
-    `).all();
+    let res: any = null;
+    try {
+      res = await db.prepare(`
+        SELECT cs.*, sa.name, sa.phone,
+          (SELECT amount FROM payment_receipts WHERE subscription_id = cs.id ORDER BY id DESC LIMIT 1) AS receipt_amount,
+          (SELECT receipt_data FROM payment_receipts WHERE subscription_id = cs.id ORDER BY id DESC LIMIT 1) AS receipt_data,
+          (SELECT created_at FROM payment_receipts WHERE subscription_id = cs.id ORDER BY id DESC LIMIT 1) AS receipt_at
+        FROM course_subscriptions cs
+        JOIN student_accounts sa ON cs.student_id = sa.id
+        WHERE cs.status = 'pending'
+        ORDER BY cs.created_at DESC
+      `).all();
+    } catch {
+      res = await db.prepare(`
+        SELECT cs.*, sa.name, sa.phone
+        FROM course_subscriptions cs
+        JOIN student_accounts sa ON cs.student_id = sa.id
+        WHERE cs.status = 'pending'
+        ORDER BY cs.created_at DESC
+      `).all();
+    }
     pendingRequests = res.results || [];
 
     const tRes = await db.prepare('SELECT id, name FROM teachers').all();
@@ -46,6 +60,7 @@ if (db) {
             <th class="p-4">رقم الجوال</th>
             <th class="p-4">الكورس المطلوب</th>
             <th class="p-4">الباقة</th>
+            <th class="p-4">إيصال التحويل</th>
             <th class="p-4">إجراءات (تعيين وتفعيل)</th>
           </tr>
         </thead>
@@ -57,6 +72,23 @@ if (db) {
               <td class="p-4" dir="ltr">{req.phone}</td>
               <td class="p-4"><span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-bold">{req.course_name}</span></td>
               <td class="p-4">{req.package_name}</td>
+              <td class="p-4">
+                {req.receipt_data ? (
+                  <div class="flex items-center gap-3">
+                    {req.receipt_data.startsWith('data:image') ? (
+                      <img src={req.receipt_data} alt="إيصال التحويل" class="h-16 w-12 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity" onclick="window.showReceipt && window.showReceipt(this.src)" />
+                    ) : (
+                      <a href={req.receipt_data} download="receipt" class="text-primary font-bold hover:underline">عرض الإيصال</a>
+                    )}
+                    <div>
+                      <div class="font-black text-green-700">{req.receipt_amount} ر.س</div>
+                      <div class="text-xs text-muted-foreground font-bold">بانتظار التأكيد مع التفعيل</div>
+                    </div>
+                  </div>
+                ) : (
+                  <span class="text-muted-foreground font-bold">لم يُرفع بعد</span>
+                )}
+              </td>
               <td class="p-4 flex gap-2 items-center">
                 <form action="/api/requests/approve" method="POST" class="flex gap-2 w-full">
                   <input type="hidden" name="subscription_id" value={req.id} />
@@ -76,11 +108,21 @@ if (db) {
           ))}
           {pendingRequests.length === 0 && (
             <tr>
-              <td colspan="6" class="p-8 text-center text-muted-foreground font-bold">لا توجد طلبات جديدة حالياً</td>
+              <td colspan="7" class="p-8 text-center text-muted-foreground font-bold">لا توجد طلبات جديدة حالياً</td>
             </tr>
           )}
         </tbody>
       </table>
     </div>
   </div>
+  <div id="receiptLightbox" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4" onclick="this.classList.add('hidden'); this.classList.remove('flex');">
+    <img id="receiptLightboxImg" class="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl" alt="إيصال التحويل بحجم كامل" />
+  </div>
+  <script>
+    window.showReceipt = function (src) {
+      var box = document.getElementById('receiptLightbox');
+      var img = document.getElementById('receiptLightboxImg');
+      if (box && img) { img.src = src; box.classList.remove('hidden'); box.classList.add('flex'); }
+    };
+  </script>
 </DashboardLayout>
