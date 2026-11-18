@@ -95,7 +95,7 @@ if (Astro.request.method === "POST") {
 	{success && <div class="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-8 font-bold flex items-center gap-3"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> {success}</div>}
 
 	<div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
-		<form method="POST" class="space-y-6">
+		<form method="POST" id="blog-form" class="space-y-6">
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<!-- Basic Info -->
 				<div class="md:col-span-2">
@@ -162,12 +162,26 @@ if (Astro.request.method === "POST") {
 						<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.35 2.22 2.3 2.8 2.02 1.06-0.5 1.22-3.17 2.2-3.17 1.67 0 3-1.36 3-3.03 0-1.66-1.33-3.02-3-3.02z"/><path d="m13 15 2 2"/><path d="m16 12 2 2"/></svg>
 						توليد بواسطة AI
 					</button>
+					<button type="button" id="html-paste-btn" class="text-xs bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 font-bold transition-colors flex items-center gap-1">
+						&lt;/&gt; لصق كود HTML
+					</button>
 				</label>
 				<input type="hidden" name="body" id="body-input" value={post.body} />
 				<div class="border border-slate-200 rounded-2xl overflow-hidden bg-white">
 					<div id="editor-container" class="bg-white" style="height: 400px; direction: rtl; text-align: right; font-family: 'Cairo', sans-serif;">
 						<Fragment set:html={post.body} />
 					</div>
+				</div>
+				<div id="html-paste-panel" class="hidden mt-4 border border-emerald-200 rounded-2xl bg-emerald-50/60 p-4">
+					<label class="block text-sm font-black text-slate-700 mb-2">كود HTML للمقال — يُحفظ كما هو بالضبط (مناسب للجداول والتنسيقات الكاملة)</label>
+					<textarea id="html-paste-area" dir="ltr" rows="12" class="w-full p-3 font-mono text-xs bg-slate-900 text-green-300 border border-slate-800 rounded-xl outline-none" placeholder="<h2>عنوان</h2><p>نص المقال...</p>"></textarea>
+					<div class="flex flex-wrap gap-3 mt-3 items-center">
+						<button type="button" id="html-apply-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-black text-sm transition-colors">تطبيق الـHTML في المقال</button>
+						<button type="button" id="html-close-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2.5 rounded-xl font-black text-sm transition-colors">إغلاق</button>
+						<button type="button" id="html-mode-off-btn" class="hidden bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-5 py-2.5 rounded-xl font-black text-sm transition-colors">إلغاء وضع HTML المباشر</button>
+						<span id="html-mode-status" class="text-xs font-black text-emerald-700"></span>
+					</div>
+					<p class="text-xs text-slate-500 mt-2 font-bold">بعد الضغط على «تطبيق»، سيُحفظ الكود كما هو عند نشر المقال. لا تعدّل داخل المحرر المرئي بعد التطبيق حتى لا يُستبدل الكود — وإن احتجت تعديلاً، الصق الكود المعدّل هنا وطبّقه من جديد.</p>
 				</div>
 			</div>
 
@@ -228,10 +242,63 @@ if (Astro.request.method === "POST") {
 		var bodyInput = document.getElementById('body-input');
 		
 		quill.on('text-change', function() {
+			if (rawHtmlActive) return;
 			var html = quill.root.innerHTML;
 			if (html === '<p><br></p>') html = '';
 			if (bodyInput) bodyInput.value = html;
 		});
+
+		// Raw HTML paste mode: the saved body is the exact pasted HTML (keeps tables and full formatting)
+		var rawHtmlActive = false;
+		var rawHtmlValue = '';
+		var htmlPasteBtn = document.getElementById('html-paste-btn');
+		var htmlPanel = document.getElementById('html-paste-panel');
+		var htmlArea = document.getElementById('html-paste-area');
+		var htmlApplyBtn = document.getElementById('html-apply-btn');
+		var htmlCloseBtn = document.getElementById('html-close-btn');
+		var htmlOffBtn = document.getElementById('html-mode-off-btn');
+		var htmlStatus = document.getElementById('html-mode-status');
+		var blogForm = document.getElementById('blog-form');
+
+		if (htmlPasteBtn && htmlPanel && htmlArea) {
+			htmlPasteBtn.addEventListener('click', function() {
+				htmlPanel.classList.toggle('hidden');
+				if (!htmlPanel.classList.contains('hidden') && !rawHtmlActive) {
+					htmlArea.value = bodyInput ? bodyInput.value : quill.root.innerHTML;
+				}
+			});
+		}
+		if (htmlCloseBtn && htmlPanel) {
+			htmlCloseBtn.addEventListener('click', function() { htmlPanel.classList.add('hidden'); });
+		}
+		if (htmlApplyBtn && htmlArea) {
+			htmlApplyBtn.addEventListener('click', function() {
+				rawHtmlValue = htmlArea.value;
+				rawHtmlActive = true;
+				if (bodyInput) bodyInput.value = rawHtmlValue;
+				quill.setContents([]);
+				if (rawHtmlValue.trim()) {
+					quill.clipboard.dangerouslyPasteHTML(0, rawHtmlValue);
+				}
+				if (bodyInput) bodyInput.value = rawHtmlValue;
+				if (htmlStatus) htmlStatus.textContent = 'وضع HTML المباشر مفعّل — سيُحفظ الكود كما هو عند النشر ✓';
+				if (htmlOffBtn) htmlOffBtn.classList.remove('hidden');
+			});
+		}
+		if (htmlOffBtn) {
+			htmlOffBtn.addEventListener('click', function() {
+				rawHtmlActive = false;
+				rawHtmlValue = '';
+				if (bodyInput) bodyInput.value = quill.root.innerHTML;
+				if (htmlStatus) htmlStatus.textContent = '';
+				htmlOffBtn.classList.add('hidden');
+			});
+		}
+		if (blogForm) {
+			blogForm.addEventListener('submit', function() {
+				if (rawHtmlActive && bodyInput) bodyInput.value = rawHtmlValue;
+			});
+		}
 
 		// Image Upload Base64 Handler with Compression
 		var imageUpload = document.getElementById('image-upload');
