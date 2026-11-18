@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         
         // Log transaction
         await db.prepare('INSERT INTO teacher_transactions (teacher_id, change_type, amount, note) VALUES (?, ?, ?, ?)')
-          .bind(id, 'payout', -totalAmount, `تم دفع المستحقات: ${totalAmount} ريال عن ${sessionsToReset} حصة. وتصفير العداد.`).run();
+          .bind(id, 'payout', -totalAmount, `تم دفع المستحقات: ${totalAmount} جنيه عن ${sessionsToReset} حصة. وتصفير العداد.`).run();
       }
       
       return redirect('/teachers?success=paid');

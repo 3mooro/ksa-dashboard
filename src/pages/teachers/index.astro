@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { Plus, Edit2, Trash2, Calculator, UserPlus } from 'lucide-astro';
+import { Plus, Edit2, Trash2, Calculator, UserPlus, Wallet } from 'lucide-astro';
 import { env } from 'cloudflare:workers';
 
 let teachers = [];
@@ -19,6 +19,8 @@ try {
 	console.error(e);
 	error = "حدث خطأ أثناء جلب بيانات المعلمين.";
 }
+
+const totalOwed = teachers.reduce((sum: number, t: any) => sum + (Number(t.balance) || 0), 0);
 ---
 
 <DashboardLayout title="إدارة المعلمين">
@@ -30,6 +32,17 @@ try {
 		<button onclick="document.getElementById('add-teacher-modal').classList.remove('hidden')" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-blue-600/20 hover:-translate-y-0.5">
 			<UserPlus class="w-5 h-5" /> إضافة معلم جديد
 		</button>
+	</div>
+
+	<div class="bg-gradient-to-l from-red-500 to-rose-600 rounded-3xl p-6 mb-8 shadow-md shadow-red-500/20 text-white flex items-center justify-between flex-wrap gap-4">
+		<div class="flex items-center gap-4">
+			<div class="p-3 bg-white/20 rounded-2xl"><Wallet class="w-7 h-7" /></div>
+			<div>
+				<p class="font-black text-lg">إجمالي المديونية المستحقة للمعلمين</p>
+				<p class="text-sm font-bold text-white/75 mt-0.5">مجموع مستحقات {teachers.length} معلم نشط — إجمالي الفلوس المطلوب دفعها للمعلمين حتى الآن</p>
+			</div>
+		</div>
+		<div class="text-4xl font-black">{totalOwed.toLocaleString('en-US')} <span class="text-xl font-bold">جنيه</span></div>
 	</div>
 
 	{error && <div class="bg-red-50 text-red-700 px-6 py-4 rounded-2xl mb-8 font-bold border border-red-200">{error}</div>}
@@ -58,7 +71,7 @@ try {
 						<p class="font-bold text-sm text-slate-600 mb-4" dir="ltr">{t.phone}</p>
 						<form method="POST" action="/api/teachers/approve" class="mt-auto flex flex-col gap-2">
 							<input type="hidden" name="id" value={t.id} />
-							<input type="number" name="session_price" placeholder="سعر الحصة (ريال)" required class="w-full bg-white border border-yellow-300 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-yellow-500 text-left" dir="ltr" />
+							<input type="number" name="session_price" placeholder="سعر الحصة (جنيه)" required class="w-full bg-white border border-yellow-300 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-yellow-500 text-left" dir="ltr" />
 							<button type="submit" class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-3 rounded-xl transition-all shadow-sm">
 								تفعيل الحساب
 							</button>
@@ -96,7 +109,7 @@ try {
 					<div class="flex-1 space-y-4 my-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
 						<div class="flex justify-between items-center border-b border-slate-200 pb-2">
 							<span class="text-sm font-bold text-slate-600">سعر الحصة:</span>
-							<span class="font-black text-slate-800">{teacher.session_price} ريال</span>
+							<span class="font-black text-slate-800">{teacher.session_price} جنيه</span>
 						</div>
 						<div class="flex justify-between items-center border-b border-slate-200 pb-2">
 							<span class="text-sm font-bold text-slate-600">عدد الحصص:</span>
@@ -104,7 +117,7 @@ try {
 						</div>
 						<div class="flex justify-between items-center pt-2">
 							<span class="text-sm font-bold text-slate-600">المستحقات الإجمالية:</span>
-							<span class="font-black text-green-600 text-lg">{teacher.balance || 0} ريال</span>
+							<span class="font-black text-green-600 text-lg">{teacher.balance || 0} جنيه</span>
 						</div>
 					</div>
 
@@ -161,7 +174,7 @@ try {
 					<textarea name="bio" rows="2" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold"></textarea>
 				</div>
 				<div>
-					<label class="block text-sm font-bold text-slate-700 mb-2">سعر الحصة (ريال)</label>
+					<label class="block text-sm font-bold text-slate-700 mb-2">سعر الحصة (جنيه)</label>
 					<input type="number" name="session_price" value="0" min="0" required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-bold text-left" dir="ltr" />
 				</div>
 				<button type="submit" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/30">

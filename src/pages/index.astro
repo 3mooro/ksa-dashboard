@@ -591,7 +591,7 @@ if (db) {
 								</td>
 
 								<td class="p-4 font-black text-slate-700">
-									{trial.teacher_price ? `${trial.teacher_price} ريال` : 'مجانية (0 ريال)'}
+									{trial.teacher_price ? `${trial.teacher_price} جنيه` : 'مجانية (0 جنيه)'}
 								</td>
 
 								<td class="p-4">
@@ -673,7 +673,7 @@ if (db) {
 				</div>
 
 				<div>
-					<label class="block text-sm font-bold text-slate-700 mb-1">مستحقات المعلم عن الحصة (ريال)</label>
+					<label class="block text-sm font-bold text-slate-700 mb-1">مستحقات المعلم عن الحصة (جنيه)</label>
 					<input type="number" name="teacher_price" id="trial-teacher-price" value="0" min="0" step="any" required class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all font-bold text-slate-800 text-left" dir="ltr" />
 					<span class="text-[11px] text-slate-400 font-bold block mt-1">يُضاف لرصيد المعلم عند الضغط على "إتمام الحصة". يمكنك تغييره أو جعله 0 إذا كانت بدون أجر.</span>
 				</div>

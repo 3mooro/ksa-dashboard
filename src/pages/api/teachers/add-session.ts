@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
         .bind(price, id).run();
       
       await db.prepare("INSERT INTO teacher_transactions (teacher_id, change_type, amount, note) VALUES (?, 'session', ?, ?)")
-        .bind(id, price, `تسجيل حصة يدوية بمبلغ ${price} ريال`).run();
+        .bind(id, price, `تسجيل حصة يدوية بمبلغ ${price} جنيه`).run();
       
       return redirect('/teachers?success=updated');
     } catch (e: any) {
